@@ -1,0 +1,110 @@
+{
+  "appTitle": "Passport Photo Maker",
+  "appSubtitle": "100% Client-Side, Private, & Print-Ready Passport Photos",
+  "privacyBadge": "100% Private (No photos leave your browser)",
+  "steps": {
+    "upload": "Upload",
+    "preset": "Choose Size",
+    "crop": "Crop & Align",
+    "background": "Background",
+    "adjust": "Adjust & Compress",
+    "print": "Print Sheet",
+    "download": "Download"
+  },
+  "upload": {
+    "title": "Upload your portrait photo",
+    "subtitle": "Take a photo against a plain wall or upload an existing picture.",
+    "dragDrop": "Drag & drop your photo here, or browse files",
+    "cameraBtn": "Take with Camera",
+    "browseBtn": "Select Photo",
+    "supports": "Supports JPG, PNG, WEBP, and HEIC (up to 25MB). Auto-rotates & scales smoothly.",
+    "tipsTitle": "Tips for a compliant passport photo:",
+    "tip1": "Look directly at camera with neutral expression",
+    "tip2": "Even lighting without dark shadows or reflections",
+    "tip3": "Plain wall background helps AI remove it cleanly",
+    "tip4": "Keep head straight and shoulders visible"
+  },
+  "preset": {
+    "title": "Select Country & Passport Standard",
+    "subtitle": "Standard 300 DPI passport, visa, and exam size specifications.",
+    "customSize": "Custom Size",
+    "width": "Width",
+    "height": "Height",
+    "unit": "Unit",
+    "dpi": "Target Resolution (DPI)",
+    "complianceAlert": "Official Compliance Requirements"
+  },
+  "crop": {
+    "title": "Crop and Align Face",
+    "subtitle": "Center your face inside the guideline box so head height is 70-80%.",
+    "autoCenter": "Auto-Center Face",
+    "zoom": "Zoom",
+    "rotation": "Rotate",
+    "flip": "Flip",
+    "reset": "Reset Crop",
+    "faceDetected": "Face detected cleanly",
+    "faceGuideLabel": "Head 70-80% height guide"
+  },
+  "background": {
+    "title": "Background Removal & Replacement",
+    "subtitle": "Remove background in one click, choose official colors, or touch up with the brush.",
+    "removeBgBtn": "Remove Background (AI)",
+    "processingBg": "Removing background in browser...",
+    "presetColors": "Preset Colors",
+    "customColor": "Custom Color",
+    "gradient": "Soft Gradient",
+    "feather": "Edge Feathering (Smooth Hair)",
+    "manualBrush": "Manual Erase / Restore Brush",
+    "beforeAfter": "Before / After Comparison",
+    "erase": "Erase",
+    "restore": "Restore",
+    "brushSize": "Brush Size",
+    "undo": "Undo",
+    "redo": "Redo"
+  },
+  "adjust": {
+    "title": "Photo Adjustments & Compression",
+    "subtitle": "Enhance portrait clarity and compress to meet strict portal file size limits.",
+    "brightness": "Brightness",
+    "contrast": "Contrast",
+    "sharpness": "Sharpness",
+    "skinSmooth": "Skin Smoothing",
+    "targetSize": "Target File Size (e.g. Under 50 KB)",
+    "format": "File Format",
+    "origVsFinal": "Original: {orig} | Final: {final} ({width} × {height} px)"
+  },
+  "sheet": {
+    "title": "Print Sheet Maker",
+    "subtitle": "Arrange photos onto standard paper sheets with exact millimeter precision.",
+    "paperSize": "Paper Size",
+    "orientation": "Orientation",
+    "portrait": "Portrait",
+    "landscape": "Landscape",
+    "copies": "Number of Copies",
+    "fillPage": "Fill Full Page",
+    "maxFit": "Maximum photos fitting on this sheet: {count}",
+    "margins": "Page Margin",
+    "gaps": "Gap between Photos",
+    "borders": "Photo Borders",
+    "cutMarks": "Cut / Crop Marks",
+    "mixedLayout": "Mixed Layout (Multiple Photos)",
+    "downloadPdf": "Download Print-Ready PDF",
+    "downloadImage": "Download Sheet Image (300 DPI)",
+    "printNow": "Print Sheet",
+    "printTip": "Important Print Setting: Always print at 100% or 'Actual Size'. Never select 'Fit to Page' or 'Shrink to Printable Area'!"
+  },
+  "extra": {
+    "nameDate": "Add Name & Date of Photograph",
+    "signature": "Add Signature",
+    "batch": "Batch Mode (Multiple Photos)",
+    "compliance": "Compliance Checklist"
+  },
+  "common": {
+    "next": "Next Step",
+    "back": "Back",
+    "download": "Download Photo",
+    "restart": "Start Over",
+    "copied": "Copied to clipboard",
+    "loading": "Processing..."
+  }
+}

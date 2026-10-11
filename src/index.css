@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Custom print styles to guarantee 100% scale and no browser margins */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  #printable-sheet-area, #printable-sheet-area * {
+    visibility: visible;
+  }
+  
+  #printable-sheet-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: white !important;
+  }
+
+  @page {
+    margin: 0mm;
+    size: auto;
+  }
+}
+
+/* Range input styling */
+input[type="range"] {
+  accent-color: #2563eb;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.8);
+}
