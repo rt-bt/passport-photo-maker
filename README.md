@@ -2,11 +2,15 @@
 
 > **100% Client-Side, Privacy-First Passport Photo Creator, Background Remover, Compressor & Print Sheet Maker.**
 
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20on%20Vercel-success?style=for-the-badge&logo=vercel)](https://passport-photo-maker-henna.vercel.app/)
+
 [![CI](https://github.com/rt-bt/passport-photo-maker/actions/workflows/ci.yml/badge.svg)](https://github.com/rt-bt/passport-photo-maker/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Privacy First](https://img.shields.io/badge/Privacy-100%25%20In--Browser-brightgreen.svg)](#privacy-first-architecture)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-Bundler-646CFF)](https://vitejs.dev/)
+
+🔗 **Live Website**: [https://passport-photo-maker-henna.vercel.app](https://passport-photo-maker-henna.vercel.app/)
 
 **Passport Photo Maker** is a browser-only, open-source web application that converts any large photograph into standard passport photos, removes backgrounds using AI directly in the browser, compresses the file size to meet government portal limits (e.g. `< 20 KB`, `< 50 KB`), and arranges multiple copies into millimeter-accurate print sheets (A4, 4×6 inch, US Letter) with high-res PDF and image export.
 
