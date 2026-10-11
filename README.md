@@ -2,7 +2,7 @@
 
 > **100% Client-Side, Privacy-First Passport Photo Creator, Background Remover, Compressor & Print Sheet Maker.**
 
-[![CI](https://github.com/your-username/passport-photo-maker/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/passport-photo-maker/actions)
+[![CI](https://github.com/rt-bt/passport-photo-maker/actions/workflows/ci.yml/badge.svg)](https://github.com/rt-bt/passport-photo-maker/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Privacy First](https://img.shields.io/badge/Privacy-100%25%20In--Browser-brightgreen.svg)](#privacy-first-architecture)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)](https://www.typescriptlang.org/)
@@ -94,7 +94,7 @@ Your photos **NEVER** leave your computer or phone.
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/passport-photo-maker.git
+git clone https://github.com/rt-bt/passport-photo-maker.git
 
 # Navigate into the project directory
 cd passport-photo-maker
