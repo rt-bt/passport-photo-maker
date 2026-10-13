@@ -65,10 +65,13 @@ export const Step5AdjustCompress: React.FC<Step5AdjustCompressProps> = ({
   const [nameDate, setNameDate] = useState<NameDateSettings>({
     enabled: false,
     name: '',
+    firstName: '',
+    lastName: '',
     date: new Date().toLocaleDateString('en-GB'),
+    showDopPrefix: false,
     font: 'Arial, sans-serif',
     fontSize: 14,
-    bannerHeightMm: 6,
+    bannerHeightMm: 8,
     textColor: '#000000',
     backgroundColor: '#FFFFFF',
   });
@@ -108,7 +111,10 @@ export const Step5AdjustCompress: React.FC<Step5AdjustCompressProps> = ({
         applyAdjustments(ctx, targetWidthPx, targetHeightPx, adjustments);
 
         // Add Name and Date Banner if enabled
-        if (nameDate.enabled && (nameDate.name || nameDate.date)) {
+        if (
+          nameDate.enabled &&
+          (nameDate.firstName || nameDate.lastName || nameDate.name || nameDate.date)
+        ) {
           const bannerHeightPx = mmToPx(nameDate.bannerHeightMm, dpi);
           const bannerY = targetHeightPx - bannerHeightPx;
 
@@ -121,14 +127,50 @@ export const Step5AdjustCompress: React.FC<Step5AdjustCompressProps> = ({
           ctx.fillStyle = nameDate.textColor || '#000000';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.font = `bold ${Math.round(bannerHeightPx * 0.35)}px sans-serif`;
 
-          if (nameDate.name && nameDate.date) {
-            ctx.fillText(nameDate.name, targetWidthPx / 2, bannerY + bannerHeightPx * 0.33);
-            ctx.font = `normal ${Math.round(bannerHeightPx * 0.28)}px sans-serif`;
-            ctx.fillText(`DOP: ${nameDate.date}`, targetWidthPx / 2, bannerY + bannerHeightPx * 0.72);
-          } else {
-            ctx.fillText(nameDate.name || nameDate.date, targetWidthPx / 2, bannerY + bannerHeightPx / 2);
+          // Collect lines to display: Line 1 (First Name), Line 2 (Last Name), Line 3 (Date)
+          const lines: { text: string; isBold: boolean }[] = [];
+
+          const fName = nameDate.firstName?.trim() || '';
+          const lName = nameDate.lastName?.trim() || '';
+          const rawName = nameDate.name?.trim() || '';
+
+          if (fName && lName) {
+            lines.push({ text: fName, isBold: true });
+            lines.push({ text: lName, isBold: true });
+          } else if (fName || lName) {
+            lines.push({ text: fName || lName, isBold: true });
+          } else if (rawName) {
+            const parts = rawName.split(/\s+/);
+            if (parts.length >= 2) {
+              lines.push({ text: parts[0], isBold: true });
+              lines.push({ text: parts.slice(1).join(' '), isBold: true });
+            } else {
+              lines.push({ text: rawName, isBold: true });
+            }
+          }
+
+          if (nameDate.date?.trim()) {
+            const dateStr = nameDate.showDopPrefix
+              ? `DOP: ${nameDate.date.trim()}`
+              : nameDate.date.trim();
+            lines.push({ text: dateStr, isBold: false });
+          }
+
+          if (lines.length > 0) {
+            const fontSizePx = Math.round(
+              lines.length >= 3
+                ? bannerHeightPx * 0.22
+                : lines.length === 2
+                ? bannerHeightPx * 0.30
+                : bannerHeightPx * 0.42
+            );
+
+            lines.forEach((line, idx) => {
+              ctx.font = `${line.isBold ? 'bold' : 'normal'} ${fontSizePx}px sans-serif`;
+              const yPos = bannerY + bannerHeightPx * ((idx + 1) / (lines.length + 1));
+              ctx.fillText(line.text, targetWidthPx / 2, yPos);
+            });
           }
         }
 

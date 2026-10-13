@@ -63,8 +63,11 @@ export interface SheetSettings {
 
 export interface NameDateSettings {
   enabled: boolean;
-  name: string;
+  name?: string;
+  firstName: string;
+  lastName: string;
   date: string;
+  showDopPrefix: boolean;
   font: string;
   fontSize: number;
   bannerHeightMm: number;
