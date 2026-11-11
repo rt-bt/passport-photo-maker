@@ -1,14 +1,39 @@
 import { GpuServerStatus, GpuRestoreOptions, GpuRestoreResult } from '../types';
 
-export const DEFAULT_GPU_SERVER_URL = 'http://127.0.0.1:8000';
+export function getGpuServerUrl(): string {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('gpu_server_url');
+    if (custom && custom.trim()) {
+      return custom.trim().replace(/\/+$/, '');
+    }
+  }
+  const envUrl = (import.meta as any).env?.VITE_GPU_SERVER_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+  return 'http://127.0.0.1:8000';
+}
+
+export function setGpuServerUrl(url: string): void {
+  if (typeof window !== 'undefined') {
+    if (url.trim()) {
+      localStorage.setItem('gpu_server_url', url.trim());
+    } else {
+      localStorage.removeItem('gpu_server_url');
+    }
+    cachedStatus = null;
+  }
+}
+
+export const DEFAULT_GPU_SERVER_URL = getGpuServerUrl();
 
 let cachedStatus: { status: GpuServerStatus; timestamp: number } | null = null;
 
 /**
- * Checks the status and connectivity of the local RTX GPU AI engine
+ * Checks the status and connectivity of the local or cloud GPU AI engine
  */
 export async function checkGpuServerHealth(
-  serverUrl = DEFAULT_GPU_SERVER_URL,
+  serverUrl = getGpuServerUrl(),
   forceRefresh = false
 ): Promise<GpuServerStatus> {
   const now = Date.now();
@@ -60,7 +85,7 @@ export async function checkGpuServerHealth(
 export async function restoreImageWithGpu(
   imageDataUrl: string,
   options: GpuRestoreOptions,
-  serverUrl = DEFAULT_GPU_SERVER_URL
+  serverUrl = getGpuServerUrl()
 ): Promise<GpuRestoreResult> {
   const payload = {
     image: imageDataUrl,

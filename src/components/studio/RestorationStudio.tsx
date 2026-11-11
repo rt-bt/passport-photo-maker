@@ -19,13 +19,15 @@ import {
   AlertCircle,
   RefreshCw,
   ArrowRight,
+  Settings,
+  Link,
   Camera,
   FileImage,
 } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Slider } from '../common/Slider';
 import { BeforeAfterSlider } from '../features/BeforeAfterSlider';
-import { checkGpuServerHealth, restoreImageWithGpu } from '../../lib/gpuRestoration';
+import { checkGpuServerHealth, restoreImageWithGpu, getGpuServerUrl, setGpuServerUrl } from '../../lib/gpuRestoration';
 import { processUploadedFile } from '../../lib/exif';
 import {
   GpuServerStatus,
@@ -72,6 +74,14 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
   const [progressStage, setProgressStage] = useState<string>('');
   const [result, setResult] = useState<GpuRestoreResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showServerConfig, setShowServerConfig] = useState<boolean>(false);
+  const [serverInputUrl, setServerInputUrl] = useState<string>(getGpuServerUrl());
+
+  const handleSaveServerUrl = () => {
+    setGpuServerUrl(serverInputUrl);
+    setShowServerConfig(false);
+    refreshServerHealth();
+  };
 
   // Poll server health
   const refreshServerHealth = async () => {
@@ -300,6 +310,17 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
                 >
                   {isCheckingServer ? 'Checking' : serverStatus?.online ? 'Online' : 'Offline'}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setServerInputUrl(getGpuServerUrl());
+                    setShowServerConfig((prev) => !prev);
+                  }}
+                  title="Configure AI Server Endpoint (Local or Cloud URL)"
+                  className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  <Settings className="w-3 h-3" />
+                </button>
                 {!serverStatus?.online && (
                   <button
                     type="button"
@@ -327,6 +348,53 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Cloud / Local Server Endpoint Configuration Panel */}
+      {showServerConfig && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 border border-indigo-900/80 text-white text-xs space-y-3 shadow-xl animate-in fade-in">
+          <div className="flex items-center justify-between">
+            <span className="font-bold flex items-center gap-2 text-indigo-300">
+              <Settings className="w-4 h-4 text-indigo-400" /> AI Server Endpoint Configuration
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowServerConfig(false)}
+              className="text-slate-400 hover:text-white text-xs cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+          <p className="text-slate-300 text-xs">
+            Enter the URL of your AI GPU Backend (Default: <code className="text-indigo-300">http://127.0.0.1:8000</code>). When deployed on Vercel, connect your public cloud GPU API (e.g. Hugging Face Spaces, RunPod, Modal, or ngrok tunnel):
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="url"
+              value={serverInputUrl}
+              onChange={(e) => setServerInputUrl(e.target.value)}
+              placeholder="http://127.0.0.1:8000 or https://your-space.hf.space"
+              className="flex-1 px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-mono focus:outline-none focus:border-indigo-500"
+            />
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="primary" size="sm" onClick={handleSaveServerUrl}>
+                Save & Connect
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setServerInputUrl('http://127.0.0.1:8000');
+                  setGpuServerUrl('http://127.0.0.1:8000');
+                  refreshServerHealth();
+                }}
+                className="text-slate-300 border-slate-700 hover:bg-slate-800"
+              >
+                Reset Default
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Offline Instructions Banner */}
       {!serverStatus?.online && (
