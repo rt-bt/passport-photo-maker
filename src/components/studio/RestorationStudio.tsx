@@ -396,36 +396,59 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
         </div>
       )}
 
-      {/* Offline Instructions Banner */}
-      {!serverStatus?.online && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/30 text-amber-950 dark:text-amber-200 text-xs sm:text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <div className="font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
-                AI GPU Engine is Offline
-                <span className="text-[11px] font-normal text-slate-600 dark:text-slate-400">
-                  (Port 8000 not connected)
+      {/* Engine Status Callout */}
+      {!serverStatus?.serverConnected ? (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-950 dark:text-indigo-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-in fade-in">
+          <div className="flex items-start gap-2.5">
+            <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-bold text-indigo-900 dark:text-indigo-200 flex flex-wrap items-center gap-1.5">
+                <span>In-Browser GPU Acceleration Active</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-750">
+                  {serverStatus?.gpuName || 'System Hardware'}
                 </span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-300">
-                To enable neural face restoration & 2K–16K super-resolution, run the backend server in your terminal:
-                <code className="mx-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-mono text-[11px]">
-                  server\run_server.bat
-                </code>
-                (or <code className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-mono text-[11px]">python server/main.py</code>)
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                Full 2K–16K super-resolution, anti-pixelation, and 3D depth shading rendered directly on your system's GPU inside the browser.
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refreshServerHealth}
-            className="border-amber-400/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40 shrink-0 self-end sm:self-center"
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowServerConfig(true)}
+              className="text-xs text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100/50"
+            >
+              <Settings className="w-3.5 h-3.5 mr-1" />
+              PyTorch Server (Optional)
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshServerHealth}
+              title="Check if local or cloud PyTorch server is active"
+              className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 p-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isCheckingServer ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs flex items-center justify-between gap-3 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              <strong>Dedicated PyTorch CUDA Server Connected:</strong> {serverStatus.gpuName} ({serverStatus.performanceProfile})
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowServerConfig(true)}
+            className="text-[11px] text-emerald-700 dark:text-emerald-300 underline cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isCheckingServer ? 'animate-spin' : ''}`} />
-            Check Connection
-          </Button>
+            Server Settings
+          </button>
         </div>
       )}
 

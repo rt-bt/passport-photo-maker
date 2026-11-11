@@ -118,9 +118,14 @@ export type AppMode = 'passport' | 'restoration';
 export type ResolutionTier = 'original' | '2k' | '4k' | '8k' | '16k';
 export type ExportFormat = 'jpeg' | 'png' | 'webp';
 
+export type EngineMode = 'local_cuda' | 'cloud_cuda' | 'webgpu_client' | 'webgl_client';
+
 export interface GpuServerStatus {
   online: boolean;
+  engineMode?: EngineMode;
+  serverConnected?: boolean;
   gpuName?: string;
+  vendor?: string;
   vramFreeMb?: number;
   vramTotalMb?: number;
   cudaAvailable?: boolean;

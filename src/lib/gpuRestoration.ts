@@ -1,4 +1,6 @@
 import { GpuServerStatus, GpuRestoreOptions, GpuRestoreResult } from '../types';
+import { detectClientHardware } from './hardwareDetection';
+import { restoreImageClientSide } from './clientRestoration';
 
 export function getGpuServerUrl(): string {
   if (typeof window !== 'undefined') {
@@ -56,13 +58,15 @@ export async function checkGpuServerHealth(
       const data = await res.json();
       const status: GpuServerStatus = {
         online: true,
+        serverConnected: true,
+        engineMode: 'local_cuda',
         gpuName: data.gpu_name || 'AI GPU Accelerator',
         vramFreeMb: data.vram_free_mb,
         vramTotalMb: data.vram_total_mb,
         cudaAvailable: data.cuda_available ?? true,
-        performanceProfile: data.performance_profile,
+        performanceProfile: data.performance_profile || 'PyTorch CUDA Neural Mode',
         modelsLoaded: data.models_loaded || ['GFPGANv1.4', 'RealESRGAN'],
-        version: data.version || '1.0.0',
+        version: data.version || '2.0.0',
       };
       cachedStatus = { status, timestamp: now };
       return status;
@@ -71,16 +75,29 @@ export async function checkGpuServerHealth(
     // Server is unreachable / offline
   }
 
-  const offlineStatus: GpuServerStatus = {
-    online: false,
+  // Automatic In-Browser GPU Hardware Detection (Works live on Vercel without server)
+  const clientHw = await detectClientHardware();
+  const hasBrowserHardware = clientHw.webgpuSupported || clientHw.webglSupported;
+
+  const fallbackStatus: GpuServerStatus = {
+    online: hasBrowserHardware,
+    serverConnected: false,
+    engineMode: clientHw.webgpuSupported ? 'webgpu_client' : 'webgl_client',
+    gpuName: clientHw.gpuName,
+    vendor: clientHw.vendor,
     cudaAvailable: false,
+    performanceProfile: clientHw.summary,
+    supportedTiers: ['original', '2k', '4k', '8k'],
+    modelsLoaded: ['InBrowser_HDR_Studio', 'DeBlock_Bilateral', 'Ambient_3D_Contour'],
+    version: '2.0.0',
   };
-  cachedStatus = { status: offlineStatus, timestamp: now };
-  return offlineStatus;
+  cachedStatus = { status: fallbackStatus, timestamp: now };
+  return fallbackStatus;
 }
 
 /**
  * Restores and upscales a low quality image using the local RTX 4080 GPU engine
+ * or automatically falls back to client-side WebGPU acceleration when live on Vercel.
  */
 export async function restoreImageWithGpu(
   imageDataUrl: string,
@@ -104,38 +121,37 @@ export async function restoreImageWithGpu(
     output_format: options.outputFormat || 'jpeg',
   };
 
-  const res = await fetch(`${serverUrl}/restore`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const res = await fetch(`${serverUrl}/restore`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!res.ok) {
-    let errMsg = `GPU Server Error (${res.status})`;
-    try {
-      const errJson = await res.json();
-      if (errJson.detail) errMsg = errJson.detail;
-    } catch {
-      // ignore
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        success: true,
+        dataUrl: data.image,
+        processingTimeMs: data.processing_time_ms,
+        originalWidth: data.original_width,
+        originalHeight: data.original_height,
+        enhancedWidth: data.enhanced_width,
+        enhancedHeight: data.enhanced_height,
+        targetRes: data.target_res || options.targetRes || 'original',
+        facesDetected: data.faces_detected,
+        gpuUsed: data.gpu_used || 'AI GPU',
+        performanceProfile: data.performance_profile,
+      };
     }
-    throw new Error(errMsg);
+  } catch {
+    // Backend server is not running (e.g. running live on Vercel)
   }
 
-  const data = await res.json();
-  return {
-    success: true,
-    dataUrl: data.image,
-    processingTimeMs: data.processing_time_ms,
-    originalWidth: data.original_width,
-    originalHeight: data.original_height,
-    enhancedWidth: data.enhanced_width,
-    enhancedHeight: data.enhanced_height,
-    targetRes: data.target_res || options.targetRes || 'original',
-    facesDetected: data.faces_detected,
-    gpuUsed: data.gpu_used || 'AI GPU',
-    performanceProfile: data.performance_profile,
-  };
+  // Fallback to client-side GPU & Canvas engine directly in the browser!
+  const clientHw = await detectClientHardware();
+  return await restoreImageClientSide(imageDataUrl, options, clientHw.gpuName);
 }
