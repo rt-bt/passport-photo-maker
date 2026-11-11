@@ -1,0 +1,11 @@
+models/*.pth
+models/*.bin
+models/*.onnx
+models/*.tar
+models/*.zip
+output/*
+!output/.gitkeep
+__pycache__/
+*.pyc
+venv/
+.venv/
