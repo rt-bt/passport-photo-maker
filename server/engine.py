@@ -332,6 +332,137 @@ class AdaptiveGpuEngine:
 
         return output
 
+    def apply_neural_colorization(self, img_bgr: np.ndarray, colorize_opts: dict, faces_detected: int = 0) -> np.ndarray:
+        if not colorize_opts or not colorize_opts.get('enabled'):
+            return img_bgr
+
+        h, w = img_bgr.shape[:2]
+        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+        norm_lum = gray.astype(np.float32) / 255.0
+
+        skin_preset = colorize_opts.get('skinTone', 'wheatish')
+        eye_preset = colorize_opts.get('eyeColor', 'hazel')
+        vibrancy = float(colorize_opts.get('vibrancy', 75)) / 100.0
+        warmth = float(colorize_opts.get('colorWarmth', 15)) / 100.0
+
+        # Palettes in OpenCV HLS (H: 0-180, L: 0-255, S: 0-255)
+        skin_palettes = {
+            'fair': (13.0, 105.0),
+            'wheatish': (14.0, 95.0),
+            'medium': (14.0, 90.0),
+            'olive': (18.0, 85.0),
+            'deep': (12.0, 110.0),
+        }
+        skin_h, skin_s = skin_palettes.get(skin_preset, (14.0, 95.0))
+        skin_h += warmth * 3.0
+
+        eye_palettes = {
+            'hazel': (18.0, 160.0),
+            'blue': (102.0, 160.0),
+            'green': (42.0, 150.0),
+            'brown': (13.0, 180.0),
+        }
+        iris_h, iris_s = eye_palettes.get(eye_preset, (18.0, 160.0))
+
+        # Check if macro eye (when no face detected)
+        is_macro_eye = False
+        pupil_cx, pupil_cy, pupil_r = w * 0.5, h * 0.5, 30.0
+
+        if faces_detected == 0:
+            cx_min, cx_max = int(w * 0.2), int(w * 0.8)
+            cy_min, cy_max = int(h * 0.2), int(h * 0.8)
+            roi = gray[cy_min:cy_max, cx_min:cx_max]
+            min_val, _, min_loc, _ = cv2.minMaxLoc(roi)
+
+            if min_val < 38:
+                pupil_cx = min_loc[0] + cx_min
+                pupil_cy = min_loc[1] + cy_min
+                dark_mask = (cv2.medianBlur(gray, 7) < 38).astype(np.uint8) * 255
+                center_mask = np.zeros_like(gray)
+                cv2.ellipse(center_mask, (w//2, h//2), (int(w*0.35), int(h*0.35)), 0, 0, 360, 255, -1)
+                candidates = cv2.bitwise_and(dark_mask, center_mask)
+                cnts, _ = cv2.findContours(candidates, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                for c in cnts:
+                    area = cv2.contourArea(c)
+                    if area > 400:
+                        (cx, cy), r = cv2.minEnclosingCircle(c)
+                        circ = 4 * np.pi * area / (cv2.arcLength(c, True)**2 + 1e-5)
+                        if circ > 0.35:
+                            is_macro_eye = True
+                            pupil_cx, pupil_cy, pupil_r = cx, cy, max(15.0, r)
+                            break
+
+        if is_macro_eye:
+            iris_r = max(pupil_r * 2.2, min(w, h) * 0.24)
+            y_coords, x_coords = np.ogrid[:h, :w]
+            dist_map = np.sqrt((x_coords - pupil_cx)**2 + (y_coords - pupil_cy)**2)
+
+            out_h = np.full((h, w), skin_h, dtype=np.float32)
+            out_s = np.full((h, w), skin_s * 0.85, dtype=np.float32)
+            out_l = norm_lum * 255.0
+
+            inner_feather = np.clip((dist_map - pupil_r * 0.82) / (pupil_r * 0.35 + 1e-5), 0.0, 1.0)
+            outer_feather = np.clip((iris_r * 1.06 - dist_map) / (iris_r * 0.15 + 1e-5), 0.0, 1.0)
+            iris_weight = inner_feather * outer_feather
+
+            limbal_ratio = dist_map / (iris_r + 1e-5)
+            local_h = iris_h - limbal_ratio * 2.0
+            local_s = iris_s * (0.9 + 0.2 * np.sin(limbal_ratio * np.pi))
+            out_h = out_h * (1.0 - iris_weight) + local_h * iris_weight
+            out_s = out_s * (1.0 - iris_weight) + local_s * iris_weight
+
+            # Sclera
+            sclera_x = np.abs(x_coords - pupil_cx) / (iris_r * 2.1)
+            sclera_y = np.abs(y_coords - pupil_cy) / (iris_r * 1.2)
+            sclera_dist = np.sqrt(sclera_x**2 + sclera_y**2)
+            sclera_weight = np.clip((norm_lum - 0.42) / 0.22, 0.0, 1.0) * np.clip((1.35 - sclera_dist) / 0.25, 0.0, 1.0) * (1.0 - iris_weight)
+            out_h = out_h * (1.0 - sclera_weight) + 16.0 * sclera_weight
+            out_s = out_s * (1.0 - sclera_weight) + 12.0 * sclera_weight
+
+            # Highlights & shadows
+            hl = np.clip((norm_lum - 0.88) / 0.08, 0.0, 1.0)
+            out_s *= (1.0 - hl)
+            sh = np.clip((0.18 - norm_lum) / 0.12, 0.0, 1.0)
+            out_s *= (1.0 - sh * 0.85)
+
+            out_s *= vibrancy
+            hls = np.stack([np.clip(out_h, 0, 180).astype(np.uint8), np.clip(out_l, 0, 255).astype(np.uint8), np.clip(out_s, 0, 255).astype(np.uint8)], axis=-1)
+            return cv2.cvtColor(hls, cv2.COLOR_HLS2BGR)
+
+        elif faces_detected > 0:
+            y_coords, x_coords = np.ogrid[:h, :w]
+            fcx, fcy = w * 0.5, h * 0.48
+            frx, fry = w * 0.28, h * 0.32
+
+            dx = (x_coords - fcx) / frx
+            dy = (y_coords - fcy) / fry
+            d_ellipse = np.sqrt(dx**2 + dy**2)
+            skin_weight = np.clip((1.25 - d_ellipse) / 0.4, 0.0, 1.0)
+
+            out_h = np.full((h, w), skin_h, dtype=np.float32)
+            out_s = (skin_s * skin_weight * 0.95).astype(np.float32)
+            out_l = norm_lum * 255.0
+
+            hl = np.clip((norm_lum - 0.88) / 0.08, 0.0, 1.0)
+            out_s *= (1.0 - hl)
+            sh = np.clip((0.15 - norm_lum) / 0.12, 0.0, 1.0)
+            out_s *= (1.0 - sh * 0.85)
+
+            out_s *= vibrancy
+            hls = np.stack([np.clip(out_h, 0, 180).astype(np.uint8), np.clip(out_l, 0, 255).astype(np.uint8), np.clip(out_s, 0, 255).astype(np.uint8)], axis=-1)
+            return cv2.cvtColor(hls, cv2.COLOR_HLS2BGR)
+
+        else:
+            base_h = 16.0 + warmth * 4.0
+            base_s = 60.0 * vibrancy
+            midtone_bell = np.sin(norm_lum * np.pi)
+            out_s = np.clip(base_s * midtone_bell * 1.2, 0.0, 255.0).astype(np.float32)
+            out_h = np.full((h, w), base_h, dtype=np.float32)
+            out_l = norm_lum * 255.0
+
+            hls = np.stack([np.clip(out_h, 0, 180).astype(np.uint8), np.clip(out_l, 0, 255).astype(np.uint8), np.clip(out_s, 0, 255).astype(np.uint8)], axis=-1)
+            return cv2.cvtColor(hls, cv2.COLOR_HLS2BGR)
+
     def process(
         self,
         img_bgr: np.ndarray,
@@ -346,7 +477,8 @@ class AdaptiveGpuEngine:
         color_warmth: int = 15,
         eye_clarity: int = 30,
         denoise: int = 20,
-        sharpen: int = 30
+        sharpen: int = 30,
+        colorize: dict = None
     ):
         t0 = time.time()
         orig_h, orig_w = img_bgr.shape[:2]
@@ -396,6 +528,10 @@ class AdaptiveGpuEngine:
             denoise=denoise,
             sharpen=sharpen
         )
+
+        # Step 2.5: Neural Black & White to Full Color Synthesis
+        if colorize and colorize.get('enabled'):
+            shaded_bgr = self.apply_neural_colorization(shaded_bgr, colorize, faces_detected)
 
         # Step 3: Multi-Resolution Scaling (Original, 2K, 4K, 8K, 16K)
         cur_h, cur_w = shaded_bgr.shape[:2]

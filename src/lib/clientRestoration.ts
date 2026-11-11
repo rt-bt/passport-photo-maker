@@ -6,7 +6,8 @@
 
 import { GpuRestoreOptions, GpuRestoreResult, ResolutionTier } from '../types';
 import { estimateFacialRegions, applyFacialPartRetouching } from './faceRetouch';
-import { colorizeGrayscalePortrait } from './colorization';
+import { colorizeGrayscaleImage } from './colorization';
+import { detectFacesInImage } from './faceDetection';
 
 export function getTargetDimensions(
   origW: number,
@@ -332,15 +333,23 @@ export async function restoreImageClientSide(
     ctx.putImageData(sharpImgData, 0, 0);
   }
 
+  // Detect faces in the restored canvas
+  let faces: any[] = [];
+  try {
+    faces = await detectFacesInImage(canvas);
+  } catch {
+    faces = [];
+  }
+  const primaryFace = faces && faces.length > 0 ? faces[0] : undefined;
+
   // 6. Stage 4: AI Black & White to Color Photo Synthesis
   if (options.colorize?.enabled) {
-    const regions = estimateFacialRegions(targetW, targetH);
-    colorizeGrayscalePortrait(ctx, targetW, targetH, options.colorize, regions);
+    colorizeGrayscaleImage(ctx, targetW, targetH, options.colorize, primaryFace);
   }
 
-  // 7. Stage 5: Granular Manual Facial Part Retouching (Eyes, Nose, Lips, Teeth, Jawline, Ears, Skin)
-  if (options.facialParts) {
-    const regions = estimateFacialRegions(targetW, targetH);
+  // 7. Stage 5: Granular Manual Facial Part Retouching (Only if face is detected or explicitly requested)
+  if (options.facialParts && primaryFace) {
+    const regions = estimateFacialRegions(targetW, targetH, primaryFace);
     applyFacialPartRetouching(ctx, targetW, targetH, options.facialParts, regions);
   }
 
@@ -361,7 +370,7 @@ export async function restoreImageClientSide(
     enhancedWidth: targetW,
     enhancedHeight: targetH,
     targetRes: options.targetRes,
-    facesDetected: 1,
+    facesDetected: faces.length,
     gpuUsed: `${detectedGpuName} (In-Browser WebGPU/Canvas Acceleration)`,
     performanceProfile: 'WebGPU / Client Hardware Engine',
   };

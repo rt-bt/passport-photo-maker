@@ -42,11 +42,13 @@ import {
   SkinTonePreset,
   ClothingColorPreset,
   BackgroundColorPreset,
+  EyeColorPreset,
 } from '../../types';
 import {
   SKIN_TONE_PALETTES,
   CLOTHING_PALETTES,
   BACKGROUND_PALETTES,
+  EYE_PALETTES,
   isImageGrayscaleOrSepia,
 } from '../../lib/colorization';
 
@@ -102,7 +104,8 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
       enabled: false,
       skinTone: 'wheatish',
       clothingColor: 'navy',
-      backgroundColor: 'studio_blue',
+      backgroundColor: 'original',
+      eyeColor: 'hazel',
       vibrancy: 75,
       colorWarmth: 15,
       vintageDeSepia: true,
@@ -129,7 +132,8 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
           enabled: true,
           skinTone: 'wheatish',
           clothingColor: 'navy',
-          backgroundColor: 'studio_blue',
+          backgroundColor: 'original',
+          eyeColor: 'hazel',
           vibrancy: 75,
           colorWarmth: 15,
           vintageDeSepia: true,
@@ -812,7 +816,41 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
                   </div>
                 </div>
 
-                {/* 2. Clothing Color */}
+                {/* 2. Eye / Iris Color */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span>Eye / Iris Color:</span>
+                    <span className="text-purple-600 dark:text-purple-400 capitalize">
+                      {options.colorize.eyeColor || 'hazel'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {(['hazel', 'brown', 'blue', 'green'] as EyeColorPreset[]).map((ec) => (
+                      <button
+                        key={ec}
+                        type="button"
+                        onClick={() => updateColorize('eyeColor', ec)}
+                        className={`p-2 rounded-xl text-center border transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                          (options.colorize?.eyeColor || 'hazel') === ec
+                            ? 'border-purple-500 bg-purple-50/70 dark:bg-purple-950/60 shadow-sm'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                      >
+                        <div
+                          className="w-5 h-5 rounded-full border border-black/10 shadow-inner"
+                          style={{
+                            backgroundColor: `rgb(${EYE_PALETTES[ec].r}, ${EYE_PALETTES[ec].g}, ${EYE_PALETTES[ec].b})`,
+                          }}
+                        />
+                        <span className="text-[10px] font-medium capitalize truncate w-full">
+                          {ec}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Clothing Color */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <span>Clothing / Suit Color:</span>
@@ -847,22 +885,22 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
                   </div>
                 </div>
 
-                {/* 3. Background Color */}
+                {/* 4. Background Color */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <span>Background Tone:</span>
                     <span className="text-purple-600 dark:text-purple-400 capitalize">
-                      {(options.colorize.backgroundColor || 'studio_blue').replace('_', ' ')}
+                      {(options.colorize.backgroundColor || 'original').replace('_', ' ')}
                     </span>
                   </div>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {(['studio_blue', 'passport_blue', 'light_gray', 'off_white'] as BackgroundColorPreset[]).map((bg) => (
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {(['original', 'studio_blue', 'passport_blue', 'light_gray', 'off_white'] as BackgroundColorPreset[]).map((bg) => (
                       <button
                         key={bg}
                         type="button"
                         onClick={() => updateColorize('backgroundColor', bg)}
                         className={`p-2 rounded-xl text-center border transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                          (options.colorize?.backgroundColor || 'studio_blue') === bg
+                          (options.colorize?.backgroundColor || 'original') === bg
                             ? 'border-purple-500 bg-purple-50/70 dark:bg-purple-950/60 shadow-sm'
                             : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
                         }`}
@@ -873,8 +911,8 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
                             backgroundColor: `rgb(${BACKGROUND_PALETTES[bg].r}, ${BACKGROUND_PALETTES[bg].g}, ${BACKGROUND_PALETTES[bg].b})`,
                           }}
                         />
-                        <span className="text-[10px] font-medium capitalize truncate w-full">
-                          {bg.split('_')[0]}
+                        <span className="text-[9.5px] font-medium capitalize truncate w-full">
+                          {bg === 'original' ? 'Original' : bg.split('_')[0]}
                         </span>
                       </button>
                     ))}

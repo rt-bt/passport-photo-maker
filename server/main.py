@@ -129,7 +129,8 @@ def restore_image(req: RestoreRequest):
             color_warmth=req.color_warmth,
             eye_clarity=req.eye_clarity,
             denoise=req.denoise,
-            sharpen=req.sharpen
+            sharpen=req.sharpen,
+            colorize=req.colorize
         )
 
         output_data_url = encode_image_to_base64(result['image_bgr'], format_type=req.output_format)

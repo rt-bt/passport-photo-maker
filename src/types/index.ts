@@ -169,12 +169,14 @@ export interface FacialPartControls {
 export type SkinTonePreset = 'wheatish' | 'fair' | 'medium' | 'olive' | 'deep' | 'auto';
 export type ClothingColorPreset = 'navy' | 'black' | 'charcoal' | 'maroon' | 'royal_blue' | 'forest_green' | 'auto';
 export type BackgroundColorPreset = 'studio_blue' | 'passport_blue' | 'light_gray' | 'off_white' | 'original';
+export type EyeColorPreset = 'hazel' | 'brown' | 'blue' | 'green' | 'auto';
 
 export interface ColorizeOptions {
   enabled: boolean;
   skinTone: SkinTonePreset;
   clothingColor: ClothingColorPreset;
   backgroundColor: BackgroundColorPreset;
+  eyeColor?: EyeColorPreset;
   vibrancy: number; // 0 to 100
   colorWarmth: number; // -50 to 50
   vintageDeSepia: boolean; // removes old yellow/sepia tint before colorizing
