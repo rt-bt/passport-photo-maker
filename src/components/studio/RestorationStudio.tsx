@@ -397,7 +397,39 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
       )}
 
       {/* Engine Status Callout */}
-      {!serverStatus?.serverConnected ? (
+      {typeof window !== 'undefined' && window.location.protocol === 'https:' && !serverStatus?.serverConnected ? (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/40 text-amber-950 dark:text-amber-200 text-xs sm:text-sm shadow-md animate-in fade-in space-y-2">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="space-y-1.5">
+              <div className="font-bold text-amber-900 dark:text-amber-200 text-sm">
+                ⚠️ Vercel HTTPS Browser Restriction (Mixed Content)
+              </div>
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                Vercel <strong>HTTPS</strong> par chalta hai, isliye browser aapke computer ke local Python server (<code className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono text-[11px]">http://127.0.0.1:8000</code>) ko security ke kaaran <strong>block</strong> kar deta hai. Is wajah se GFPGAN AI neural face restoration Vercel se local server tak nahi pahunch pa raha.
+              </p>
+              <div className="pt-1 flex flex-wrap items-center gap-2">
+                <a
+                  href="http://localhost:5173"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                  Open on http://localhost:5173 (Full RTX 4080 Speed)
+                </a>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowServerConfig(true)}
+                  className="text-xs border-amber-400 text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                >
+                  <Settings className="w-3.5 h-3.5 mr-1" />
+                  Connect HTTPS Tunnel / Cloud URL
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : !serverStatus?.serverConnected ? (
         <div className="p-3.5 sm:p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-950 dark:text-indigo-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-in fade-in">
           <div className="flex items-start gap-2.5">
             <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
