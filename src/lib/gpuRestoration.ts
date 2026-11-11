@@ -120,6 +120,7 @@ export async function restoreImageWithGpu(
     sharpen: options.sharpen ?? 30,
     output_format: options.outputFormat || 'jpeg',
     facial_parts: options.facialParts,
+    colorize: options.colorize,
   };
 
   try {

@@ -166,6 +166,20 @@ export interface FacialPartControls {
   neckShadowLift: number; // 0 to 100
 }
 
+export type SkinTonePreset = 'wheatish' | 'fair' | 'medium' | 'olive' | 'deep' | 'auto';
+export type ClothingColorPreset = 'navy' | 'black' | 'charcoal' | 'maroon' | 'royal_blue' | 'forest_green' | 'auto';
+export type BackgroundColorPreset = 'studio_blue' | 'passport_blue' | 'light_gray' | 'off_white' | 'original';
+
+export interface ColorizeOptions {
+  enabled: boolean;
+  skinTone: SkinTonePreset;
+  clothingColor: ClothingColorPreset;
+  backgroundColor: BackgroundColorPreset;
+  vibrancy: number; // 0 to 100
+  colorWarmth: number; // -50 to 50
+  vintageDeSepia: boolean; // removes old yellow/sepia tint before colorizing
+}
+
 export interface GpuRestoreOptions {
   upscale: 2 | 4;
   targetRes: ResolutionTier;
@@ -181,6 +195,7 @@ export interface GpuRestoreOptions {
   sharpen: number; // 0 to 100
   outputFormat?: ExportFormat;
   facialParts?: Partial<FacialPartControls>;
+  colorize?: Partial<ColorizeOptions>;
 }
 
 export interface GpuRestoreResult {

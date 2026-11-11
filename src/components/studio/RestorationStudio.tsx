@@ -38,7 +38,17 @@ import {
   ResolutionTier,
   ExportFormat,
   FacialPartControls,
+  ColorizeOptions,
+  SkinTonePreset,
+  ClothingColorPreset,
+  BackgroundColorPreset,
 } from '../../types';
+import {
+  SKIN_TONE_PALETTES,
+  CLOTHING_PALETTES,
+  BACKGROUND_PALETTES,
+  isImageGrayscaleOrSepia,
+} from '../../lib/colorization';
 
 interface RestorationStudioProps {
   onSendToPassportMaker: (imageSrc: string) => void;
@@ -88,6 +98,15 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
       cheekboneLift: 35,
       neckShadowLift: 35,
     },
+    colorize: {
+      enabled: false,
+      skinTone: 'wheatish',
+      clothingColor: 'navy',
+      backgroundColor: 'studio_blue',
+      vibrancy: 75,
+      colorWarmth: 15,
+      vintageDeSepia: true,
+    },
   });
 
   const [activeRetouchTab, setActiveRetouchTab] = useState<'eyes' | 'nose' | 'lips' | 'skin' | 'jawline'>('eyes');
@@ -97,6 +116,24 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
       ...prev,
       facialParts: {
         ...(prev.facialParts || {}),
+        [key]: val,
+      },
+    }));
+  };
+
+  const updateColorize = <K extends keyof ColorizeOptions>(key: K, val: ColorizeOptions[K]) => {
+    setOptions((prev) => ({
+      ...prev,
+      colorize: {
+        ...(prev.colorize || {
+          enabled: true,
+          skinTone: 'wheatish',
+          clothingColor: 'navy',
+          backgroundColor: 'studio_blue',
+          vibrancy: 75,
+          colorWarmth: 15,
+          vintageDeSepia: true,
+        }),
         [key]: val,
       },
     }));
@@ -152,6 +189,22 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
       const processed = await processUploadedFile(file);
       setImageSrc(processed.dataUrl);
       setResult(null);
+
+      // Check if uploaded photo is Black & White / Sepia and auto-enable colorization
+      const img = new Image();
+      img.onload = () => {
+        const cvs = document.createElement('canvas');
+        cvs.width = 100;
+        cvs.height = 100;
+        const c = cvs.getContext('2d');
+        if (c) {
+          c.drawImage(img, 0, 0, 100, 100);
+          if (isImageGrayscaleOrSepia(c, 100, 100)) {
+            updateColorize('enabled', true);
+          }
+        }
+      };
+      img.src = processed.dataUrl;
     } catch (err: any) {
       console.error(err);
       setError('Failed to load image. Please provide a valid JPG, PNG, or WEBP photo.');
@@ -705,7 +758,168 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
             </div>
           </div>
 
-          {/* 2. Deep Shading & Lighting Studio Card */}
+          {/* 2. AI Black & White to Full Color Photo Card */}
+          <div className="p-5 bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-900/60 rounded-3xl space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                <Palette className="w-4 h-4 text-purple-500" />
+                Black & White to Color Photo
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.colorize?.enabled ?? false}
+                  onChange={(e) => updateColorize('enabled', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+              </label>
+            </div>
+
+            {options.colorize?.enabled ? (
+              <div className="space-y-4 animate-in fade-in">
+                {/* 1. Skin Tone Selector */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span>Skin Tone Palette:</span>
+                    <span className="text-purple-600 dark:text-purple-400 capitalize">
+                      {options.colorize.skinTone || 'wheatish'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {(['wheatish', 'fair', 'medium', 'olive', 'deep'] as SkinTonePreset[]).map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => updateColorize('skinTone', st)}
+                        className={`p-2 rounded-xl text-center border transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                          (options.colorize?.skinTone || 'wheatish') === st
+                            ? 'border-purple-500 bg-purple-50/70 dark:bg-purple-950/60 shadow-sm'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                      >
+                        <div
+                          className="w-5 h-5 rounded-full border border-black/10 shadow-inner"
+                          style={{
+                            backgroundColor: `rgb(${SKIN_TONE_PALETTES[st].r}, ${SKIN_TONE_PALETTES[st].g}, ${SKIN_TONE_PALETTES[st].b})`,
+                          }}
+                        />
+                        <span className="text-[10px] font-medium capitalize truncate w-full">
+                          {st}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Clothing Color */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span>Clothing / Suit Color:</span>
+                    <span className="text-purple-600 dark:text-purple-400 capitalize">
+                      {(options.colorize.clothingColor || 'navy').replace('_', ' ')}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {(['navy', 'black', 'charcoal', 'royal_blue', 'maroon', 'forest_green'] as ClothingColorPreset[]).map((cc) => (
+                      <button
+                        key={cc}
+                        type="button"
+                        onClick={() => updateColorize('clothingColor', cc)}
+                        title={cc.replace('_', ' ')}
+                        className={`p-1.5 rounded-xl text-center border transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                          (options.colorize?.clothingColor || 'navy') === cc
+                            ? 'border-purple-500 bg-purple-50/70 dark:bg-purple-950/60 shadow-sm'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                      >
+                        <div
+                          className="w-4 h-4 rounded-full border border-white/20 shadow-inner"
+                          style={{
+                            backgroundColor: `rgb(${CLOTHING_PALETTES[cc].r}, ${CLOTHING_PALETTES[cc].g}, ${CLOTHING_PALETTES[cc].b})`,
+                          }}
+                        />
+                        <span className="text-[8.5px] font-medium capitalize truncate w-full">
+                          {cc.split('_')[0]}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Background Color */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span>Background Tone:</span>
+                    <span className="text-purple-600 dark:text-purple-400 capitalize">
+                      {(options.colorize.backgroundColor || 'studio_blue').replace('_', ' ')}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {(['studio_blue', 'passport_blue', 'light_gray', 'off_white'] as BackgroundColorPreset[]).map((bg) => (
+                      <button
+                        key={bg}
+                        type="button"
+                        onClick={() => updateColorize('backgroundColor', bg)}
+                        className={`p-2 rounded-xl text-center border transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                          (options.colorize?.backgroundColor || 'studio_blue') === bg
+                            ? 'border-purple-500 bg-purple-50/70 dark:bg-purple-950/60 shadow-sm'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                      >
+                        <div
+                          className="w-5 h-5 rounded-full border border-black/10 shadow-inner"
+                          style={{
+                            backgroundColor: `rgb(${BACKGROUND_PALETTES[bg].r}, ${BACKGROUND_PALETTES[bg].g}, ${BACKGROUND_PALETTES[bg].b})`,
+                          }}
+                        />
+                        <span className="text-[10px] font-medium capitalize truncate w-full">
+                          {bg.split('_')[0]}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4. Color Vibrancy & Warmth Sliders */}
+                <Slider
+                  label="Color Saturation & Vibrancy"
+                  value={options.colorize.vibrancy ?? 75}
+                  min={20}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateColorize('vibrancy', v)}
+                />
+
+                <Slider
+                  label="Color Temperature / Warmth"
+                  value={options.colorize.colorWarmth ?? 15}
+                  min={-40}
+                  max={40}
+                  step={5}
+                  onChange={(v) => updateColorize('colorWarmth', v)}
+                />
+
+                {/* 5. Vintage De-Sepia check */}
+                <label className="flex items-center gap-2 pt-1 text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={options.colorize.vintageDeSepia ?? true}
+                    onChange={(e) => updateColorize('vintageDeSepia', e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-purple-600 cursor-pointer"
+                  />
+                  <span>Remove vintage yellow/sepia aging stains</span>
+                </label>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Turn on to automatically convert black & white, grayscale, or old sepia photos into lifelike full color portraits with realistic skin, eyes, and clothing tones.
+              </p>
+            )}
+          </div>
+
+          {/* 3. Deep Shading & Lighting Studio Card */}
           <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl space-y-4 shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
