@@ -16,6 +16,8 @@ import {
   Eye,
   CheckCircle2,
   AlertTriangle,
+  AlertCircle,
+  RefreshCw,
   ArrowRight,
   Camera,
   FileImage,
@@ -72,6 +74,13 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Poll server health
+  const refreshServerHealth = async () => {
+    setIsCheckingServer(true);
+    const status = await checkGpuServerHealth(undefined, true);
+    setServerStatus(status);
+    setIsCheckingServer(false);
+  };
+
   useEffect(() => {
     let active = true;
     const check = async () => {
@@ -281,15 +290,27 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
           <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 shrink-0 text-xs space-y-1.5 min-w-[240px]">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-slate-300">Detected Hardware:</span>
-              <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                  serverStatus?.online
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                }`}
-              >
-                {isCheckingServer ? 'Checking' : serverStatus?.online ? 'Online' : 'Offline'}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                    serverStatus?.online
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                  }`}
+                >
+                  {isCheckingServer ? 'Checking' : serverStatus?.online ? 'Online' : 'Offline'}
+                </span>
+                {!serverStatus?.online && (
+                  <button
+                    type="button"
+                    onClick={refreshServerHealth}
+                    title="Retry connection to local GPU server"
+                    className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isCheckingServer ? 'animate-spin' : ''}`} />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="font-bold text-white flex items-center gap-1.5 truncate">
               <Cpu className="w-4 h-4 text-indigo-400 shrink-0" />
@@ -306,6 +327,39 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Offline Instructions Banner */}
+      {!serverStatus?.online && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/30 text-amber-950 dark:text-amber-200 text-xs sm:text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div className="font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
+                AI GPU Engine is Offline
+                <span className="text-[11px] font-normal text-slate-600 dark:text-slate-400">
+                  (Port 8000 not connected)
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                To enable neural face restoration & 2K–16K super-resolution, run the backend server in your terminal:
+                <code className="mx-1 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-mono text-[11px]">
+                  server\run_server.bat
+                </code>
+                (or <code className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-mono text-[11px]">python server/main.py</code>)
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshServerHealth}
+            className="border-amber-400/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40 shrink-0 self-end sm:self-center"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isCheckingServer ? 'animate-spin' : ''}`} />
+            Check Connection
+          </Button>
+        </div>
+      )}
 
       {/* Main Studio Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
