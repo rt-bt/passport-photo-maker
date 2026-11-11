@@ -4,7 +4,7 @@
   "description": "100% browser-based passport photo maker, background remover, compressor and print sheet generator",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",

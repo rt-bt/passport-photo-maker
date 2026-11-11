@@ -12,7 +12,23 @@ dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# Python & GPU server
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+server/.venv/
+gfpgan/
+server/models/*.pth
+server/models/*.pb
+server/models/*.onnx
+!server/models/.gitkeep
+
+# Temporary test / debug images in root
+/*.jpg
+/*.png
+/*.jpeg
+
 .vscode/*
 !.vscode/extensions.json
 .idea

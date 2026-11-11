@@ -23,6 +23,25 @@
 - Supports **JPG, PNG, WEBP, and HEIC** (iPhone photos converted client-side via `heic2any`).
 - Smoothly downscales high-megapixel images (10MB+ / 4000px+) in-memory to prevent browser lag.
 - Automatic **EXIF rotation** normalization.
+- **⚡ RTX 4080 GPU AI Restoration & 4× Super-Resolution**: Built-in CUDA-accelerated neural enhancement for low-quality, blurry, or pixelated photos with interactive Before/After comparison.
+
+### 2. ⚡ AI Image Restoration & Ultra Studio (2K–16K Super-Resolution)
+- **Universal Hardware Auto-Detection**: Dynamically detects any available GPU (NVIDIA RTX/GTX, AMD ROCm, Apple Silicon MPS, or Multi-core CPU) and selects the optimal precision profile (FP16 Tensor Cores, VRAM Tiling, or Low-VRAM CPU fallback).
+- **Full-Photo Restoration**: Restores faces (GFPGAN v1.4) AND entire clothes, hair, jewelry, and background textures (Real-ESRGAN Compact) simultaneously.
+- **Deep 3D Shading & Lighting Studio**:
+  - **3D Depth Contour & Ambient Shading**: Multi-scale Laplacian & shadow mapping for rich dimensional depth.
+  - **Exposure & Highlight Balance**: Recovers blown-out highlights and lifts dark shadows naturally.
+  - **HDR Micro-Contrast**: High-frequency texture pop without halo artifacts.
+  - **Skin Warmth & Melanin Vibrancy**: Prevents washed-out/pale skin tones.
+  - **Iris Depth & Eye Clarity**: Unsharp masking focused on facial focal points.
+- **Extreme Resolution Exports**:
+  - **Original Resolution** (1:1 with enhanced details)
+  - **2K** (~2048px)
+  - **4K Ultra-HD** (~3840px)
+  - **8K Studio Master** (~7680px)
+  - **16K Extreme Print / Archive** (~15360px)
+- **Master Lossless Downloads**: Download restored renders in **PNG (Lossless)**, **JPEG**, or **WEBP**, or send directly to the Passport Photo Maker with 1 click.
+
 
 ### 2. 🌍 Official Passport Size Presets (300 DPI)
 - **India Passport / Visa**: 35 × 45 mm

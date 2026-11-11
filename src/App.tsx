@@ -13,12 +13,15 @@ import { Step7Download } from './components/steps/Step7Download';
 import { Modal } from './components/common/Modal';
 import { ComplianceChecklist } from './components/features/ComplianceChecklist';
 import { BatchProcessorModal } from './components/features/BatchProcessorModal';
+import { GpuRestorationModal } from './components/features/GpuRestorationModal';
+import { RestorationStudio } from './components/studio/RestorationStudio';
 import { PASSPORT_PRESETS } from './lib/presets';
-import { PassportPreset } from './types';
+import { PassportPreset, AppMode } from './types';
 import { CompressResult } from './lib/compression';
 import { useLocalStorage } from './hooks/useLocalStorage';
 
 export const MainApp: React.FC = () => {
+  const [activeMode, setActiveMode] = useState<AppMode>('passport');
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [maxReachedStep, setMaxReachedStep] = useState<number>(1);
 
@@ -44,6 +47,26 @@ export const MainApp: React.FC = () => {
   // Modals
   const [isComplianceOpen, setIsComplianceOpen] = useState<boolean>(false);
   const [isBatchOpen, setIsBatchOpen] = useState<boolean>(false);
+  const [isGpuModalOpen, setIsGpuModalOpen] = useState<boolean>(false);
+  const [gpuModalImage, setGpuModalImage] = useState<string | null>(null);
+
+  const openGpuRestore = (initialImg?: string) => {
+    setGpuModalImage(initialImg || bgProcessedImage || croppedImage || rawImage || null);
+    setIsGpuModalOpen(true);
+  };
+
+  const handleApplyGpuRestored = (restoredUrl: string) => {
+    if (currentStep <= 3) {
+      setRawImage(restoredUrl);
+      if (currentStep === 1) {
+        goToStep(2);
+      }
+    } else if (currentStep === 4) {
+      setCroppedImage(restoredUrl);
+    } else {
+      setBgProcessedImage(restoredUrl);
+    }
+  };
 
   const goToStep = (step: number) => {
     setCurrentStep(step);
@@ -69,27 +92,47 @@ export const MainApp: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
-      <Header onOpenBatch={() => setIsBatchOpen(true)} />
+      <Header
+        activeMode={activeMode}
+        onChangeMode={setActiveMode}
+        onOpenBatch={() => setIsBatchOpen(true)}
+        onOpenGpuModal={() => openGpuRestore()}
+      />
 
-      {rawImage && (
-        <Stepper
-          currentStep={currentStep}
-          maxReachedStep={maxReachedStep}
-          onSelectStep={setCurrentStep}
-        />
-      )}
-
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {/* Step 1: Upload */}
-        {currentStep === 1 && (
-          <Step1Upload
-            onImageLoaded={(dataUrl, sizeBytes) => {
-              setRawImage(dataUrl);
-              setOriginalSizeBytes(sizeBytes);
+      {/* When in dedicated AI Restoration Studio mode */}
+      {activeMode === 'restoration' ? (
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <RestorationStudio
+            onSendToPassportMaker={(restoredImage) => {
+              setRawImage(restoredImage);
+              setActiveMode('passport');
               goToStep(2);
             }}
           />
-        )}
+        </main>
+      ) : (
+        <>
+          {rawImage && (
+            <Stepper
+              currentStep={currentStep}
+              maxReachedStep={maxReachedStep}
+              onSelectStep={setCurrentStep}
+            />
+          )}
+
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+            {/* Step 1: Upload */}
+            {currentStep === 1 && (
+              <Step1Upload
+                onImageLoaded={(dataUrl, sizeBytes) => {
+                  setRawImage(dataUrl);
+                  setOriginalSizeBytes(sizeBytes);
+                  goToStep(2);
+                }}
+                onOpenGpuRestore={(img) => openGpuRestore(img)}
+                onSelectStudio={() => setActiveMode('restoration')}
+              />
+            )}
 
         {/* Step 2: Choose Size Preset */}
         {currentStep === 2 && rawImage && (
@@ -145,6 +188,7 @@ export const MainApp: React.FC = () => {
               goToStep(6);
             }}
             onBack={() => setCurrentStep(4)}
+            onOpenGpuRestore={() => openGpuRestore()}
           />
         )}
 
@@ -171,7 +215,9 @@ export const MainApp: React.FC = () => {
             onOpenCompliance={() => setIsComplianceOpen(true)}
           />
         )}
-      </main>
+          </main>
+        </>
+      )}
 
       <Footer />
 
@@ -196,6 +242,14 @@ export const MainApp: React.FC = () => {
         isOpen={isBatchOpen}
         onClose={() => setIsBatchOpen(false)}
         preset={preset}
+      />
+
+      {/* GPU Restoration Modal */}
+      <GpuRestorationModal
+        isOpen={isGpuModalOpen}
+        onClose={() => setIsGpuModalOpen(false)}
+        inputImage={gpuModalImage}
+        onApplyRestoredImage={handleApplyGpuRestored}
       />
     </div>
   );

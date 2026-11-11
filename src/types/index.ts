@@ -112,3 +112,50 @@ export interface CropArea {
   width: number;
   height: number;
 }
+
+export type AppMode = 'passport' | 'restoration';
+
+export type ResolutionTier = 'original' | '2k' | '4k' | '8k' | '16k';
+export type ExportFormat = 'jpeg' | 'png' | 'webp';
+
+export interface GpuServerStatus {
+  online: boolean;
+  gpuName?: string;
+  vramFreeMb?: number;
+  vramTotalMb?: number;
+  cudaAvailable?: boolean;
+  performanceProfile?: string;
+  supportedTiers?: ResolutionTier[];
+  modelsLoaded?: string[];
+  version?: string;
+}
+
+export interface GpuRestoreOptions {
+  upscale: 2 | 4;
+  targetRes: ResolutionTier;
+  faceRestore: boolean;
+  fidelity: number; // 0.0 to 1.0
+  deblock?: number; // 0 to 100 anti-pixelation / JPEG block cleanup
+  depthShading: number; // 0 to 100
+  brightnessBalance: number; // -50 to 50
+  hdrContrast: number; // 0 to 100
+  colorWarmth: number; // -50 to 50
+  eyeClarity: number; // 0 to 100
+  denoise: number; // 0 to 100
+  sharpen: number; // 0 to 100
+  outputFormat?: ExportFormat;
+}
+
+export interface GpuRestoreResult {
+  success: boolean;
+  dataUrl: string;
+  processingTimeMs: number;
+  originalWidth: number;
+  originalHeight: number;
+  enhancedWidth: number;
+  enhancedHeight: number;
+  targetRes: ResolutionTier;
+  facesDetected: number;
+  gpuUsed: string;
+  performanceProfile?: string;
+}

@@ -8,6 +8,7 @@ import {
   PenTool,
   CheckCircle2,
   RefreshCw,
+  Zap,
 } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Slider } from '../common/Slider';
@@ -33,6 +34,7 @@ interface Step5AdjustCompressProps {
   originalSizeBytes: number;
   onComplete: (finalDataUrl: string, compressResult: CompressResult) => void;
   onBack: () => void;
+  onOpenGpuRestore?: () => void;
 }
 
 export const Step5AdjustCompress: React.FC<Step5AdjustCompressProps> = ({
@@ -42,6 +44,7 @@ export const Step5AdjustCompress: React.FC<Step5AdjustCompressProps> = ({
   originalSizeBytes,
   onComplete,
   onBack,
+  onOpenGpuRestore,
 }) => {
   const { t } = useI18n();
 
@@ -263,9 +266,21 @@ export const Step5AdjustCompress: React.FC<Step5AdjustCompressProps> = ({
         <div className="space-y-5">
           {/* Filters Card */}
           <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-              Portrait Enhancements
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Portrait Enhancements
+              </h3>
+              {onOpenGpuRestore && (
+                <button
+                  type="button"
+                  onClick={onOpenGpuRestore}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  AI Full Photo Restore
+                </button>
+              )}
+            </div>
             <Slider
               label={t('adjust.brightness')}
               value={adjustments.brightness}
