@@ -135,6 +135,37 @@ export interface GpuServerStatus {
   version?: string;
 }
 
+export interface FacialPartControls {
+  // 1. Eyes
+  irisClarity: number; // 0 to 100
+  eyeWhiten: number; // 0 to 100
+  eyebrowDefine: number; // 0 to 100
+  eyeBagRemoval: number; // 0 to 100
+
+  // 2. Nose
+  noseBridgeDefine: number; // 0 to 100
+  noseContour: number; // 0 to 100
+
+  // 3. Lips & Teeth
+  lipVibrancy: number; // 0 to 100
+  lipContour: number; // 0 to 100
+  teethWhiten: number; // 0 to 100
+
+  // 4. Ears & Hairline
+  earDefine: number; // 0 to 100
+  hairlineSharpen: number; // 0 to 100
+
+  // 5. Skin & Texture
+  skinSmoothing: number; // 0 to 100
+  skinGlow: number; // 0 to 100
+  antiGlare: number; // 0 to 100
+
+  // 6. Face Cutting & Jawline
+  jawlineSharpen: number; // 0 to 100
+  cheekboneLift: number; // 0 to 100
+  neckShadowLift: number; // 0 to 100
+}
+
 export interface GpuRestoreOptions {
   upscale: 2 | 4;
   targetRes: ResolutionTier;
@@ -149,6 +180,7 @@ export interface GpuRestoreOptions {
   denoise: number; // 0 to 100
   sharpen: number; // 0 to 100
   outputFormat?: ExportFormat;
+  facialParts?: Partial<FacialPartControls>;
 }
 
 export interface GpuRestoreResult {

@@ -5,6 +5,7 @@
  */
 
 import { GpuRestoreOptions, GpuRestoreResult, ResolutionTier } from '../types';
+import { estimateFacialRegions, applyFacialPartRetouching } from './faceRetouch';
 
 export function getTargetDimensions(
   origW: number,
@@ -330,7 +331,13 @@ export async function restoreImageClientSide(
     ctx.putImageData(sharpImgData, 0, 0);
   }
 
-  // 6. Export to requested format (Lossless PNG or High-Quality JPEG)
+  // 6. Stage 4: Granular Manual Facial Part Retouching (Eyes, Nose, Lips, Teeth, Jawline, Ears, Skin)
+  if (options.facialParts) {
+    const regions = estimateFacialRegions(targetW, targetH);
+    applyFacialPartRetouching(ctx, targetW, targetH, options.facialParts, regions);
+  }
+
+  // 7. Export to requested format (Lossless PNG or High-Quality JPEG)
   const format = options.outputFormat || 'jpeg';
   const mimeType = format === 'png' ? 'image/png' : format === 'webp' ? 'image/webp' : 'image/jpeg';
   const quality = format === 'png' ? undefined : 0.98;

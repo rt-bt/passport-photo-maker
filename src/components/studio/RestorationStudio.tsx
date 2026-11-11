@@ -23,6 +23,8 @@ import {
   Link,
   Camera,
   FileImage,
+  Scissors,
+  Smile,
 } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Slider } from '../common/Slider';
@@ -35,6 +37,7 @@ import {
   GpuRestoreResult,
   ResolutionTier,
   ExportFormat,
+  FacialPartControls,
 } from '../../types';
 
 interface RestorationStudioProps {
@@ -66,7 +69,38 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
     denoise: 20,
     sharpen: 35,
     outputFormat: 'jpeg',
+    facialParts: {
+      irisClarity: 50,
+      eyeWhiten: 40,
+      eyebrowDefine: 35,
+      eyeBagRemoval: 30,
+      noseBridgeDefine: 35,
+      noseContour: 30,
+      lipVibrancy: 35,
+      lipContour: 30,
+      teethWhiten: 40,
+      earDefine: 25,
+      hairlineSharpen: 30,
+      skinSmoothing: 45,
+      skinGlow: 30,
+      antiGlare: 30,
+      jawlineSharpen: 50,
+      cheekboneLift: 35,
+      neckShadowLift: 35,
+    },
   });
+
+  const [activeRetouchTab, setActiveRetouchTab] = useState<'eyes' | 'nose' | 'lips' | 'skin' | 'jawline'>('eyes');
+
+  const updateFacialPart = (key: keyof FacialPartControls, val: number) => {
+    setOptions((prev) => ({
+      ...prev,
+      facialParts: {
+        ...(prev.facialParts || {}),
+        [key]: val,
+      },
+    }));
+  };
 
   const [downloadFormat, setDownloadFormat] = useState<ExportFormat>('jpeg');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -793,7 +827,258 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
             />
           </div>
 
-          {/* 4. Action Buttons & Export */}
+          {/* 4. Manual Facial Sculptor & Retouch Suite (Part-by-Part Precision) */}
+          <div className="p-5 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/60 rounded-3xl space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                <Scissors className="w-3.5 h-3.5 text-indigo-500" />
+                Manual Facial Retouch & Face Cutting
+              </span>
+              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                Precision Landmarks
+              </span>
+            </div>
+
+            {/* Facial Part Tab Buttons */}
+            <div className="grid grid-cols-5 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => setActiveRetouchTab('eyes')}
+                className={`py-1.5 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-0.5 ${
+                  activeRetouchTab === 'eyes'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Eyes</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveRetouchTab('nose')}
+                className={`py-1.5 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-0.5 ${
+                  activeRetouchTab === 'nose'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                <Sun className="w-3.5 h-3.5" />
+                <span>Nose</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveRetouchTab('lips')}
+                className={`py-1.5 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-0.5 ${
+                  activeRetouchTab === 'lips'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                <Smile className="w-3.5 h-3.5" />
+                <span>Lips</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveRetouchTab('skin')}
+                className={`py-1.5 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-0.5 ${
+                  activeRetouchTab === 'skin'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Skin</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveRetouchTab('jawline')}
+                className={`py-1.5 px-1 rounded-xl transition-all cursor-pointer flex flex-col items-center gap-0.5 ${
+                  activeRetouchTab === 'jawline'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                <Scissors className="w-3.5 h-3.5" />
+                <span>Jawline</span>
+              </button>
+            </div>
+
+            {/* Tab 1: Eyes */}
+            {activeRetouchTab === 'eyes' && (
+              <div className="space-y-3.5 pt-1 animate-in fade-in">
+                <Slider
+                  label="Iris Clarity & Pupil Depth"
+                  value={options.facialParts?.irisClarity ?? 50}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('irisClarity', v)}
+                />
+                <Slider
+                  label="Sclera Whitening (Eye White Clean)"
+                  value={options.facialParts?.eyeWhiten ?? 40}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('eyeWhiten', v)}
+                />
+                <Slider
+                  label="Eyebrow & Lash Definition"
+                  value={options.facialParts?.eyebrowDefine ?? 35}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('eyebrowDefine', v)}
+                />
+                <Slider
+                  label="Under-Eye Dark Circle Eraser"
+                  value={options.facialParts?.eyeBagRemoval ?? 30}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('eyeBagRemoval', v)}
+                />
+              </div>
+            )}
+
+            {/* Tab 2: Nose */}
+            {activeRetouchTab === 'nose' && (
+              <div className="space-y-3.5 pt-1 animate-in fade-in">
+                <Slider
+                  label="Nose Bridge Highlight & Straightening"
+                  value={options.facialParts?.noseBridgeDefine ?? 35}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('noseBridgeDefine', v)}
+                />
+                <Slider
+                  label="3D Nose Slimming & Lateral Contours"
+                  value={options.facialParts?.noseContour ?? 30}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('noseContour', v)}
+                />
+              </div>
+            )}
+
+            {/* Tab 3: Lips & Teeth */}
+            {activeRetouchTab === 'lips' && (
+              <div className="space-y-3.5 pt-1 animate-in fade-in">
+                <Slider
+                  label="Lip Natural Pink Tone & Vibrancy"
+                  value={options.facialParts?.lipVibrancy ?? 35}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('lipVibrancy', v)}
+                />
+                <Slider
+                  label="Lip Border & Cupid's Bow Outline"
+                  value={options.facialParts?.lipContour ?? 30}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('lipContour', v)}
+                />
+                <Slider
+                  label="Teeth Whitening & Stain Removal"
+                  value={options.facialParts?.teethWhiten ?? 40}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('teethWhiten', v)}
+                />
+              </div>
+            )}
+
+            {/* Tab 4: Skin Texture & Pores */}
+            {activeRetouchTab === 'skin' && (
+              <div className="space-y-3.5 pt-1 animate-in fade-in">
+                <Slider
+                  label="Pore & Blemish Smoothing (Retains Texture)"
+                  value={options.facialParts?.skinSmoothing ?? 45}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('skinSmoothing', v)}
+                />
+                <Slider
+                  label="Melanin Glow & Skin Warmth"
+                  value={options.facialParts?.skinGlow ?? 30}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('skinGlow', v)}
+                />
+                <Slider
+                  label="Anti-Glare & Matte Oil Reduction"
+                  value={options.facialParts?.antiGlare ?? 30}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('antiGlare', v)}
+                />
+              </div>
+            )}
+
+            {/* Tab 5: Jawline & Face Cutting */}
+            {activeRetouchTab === 'jawline' && (
+              <div className="space-y-3.5 pt-1 animate-in fade-in">
+                <Slider
+                  label="Jawline Chiseled Cutting & Sharpening"
+                  value={options.facialParts?.jawlineSharpen ?? 50}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('jawlineSharpen', v)}
+                />
+                <Slider
+                  label="Cheekbone Lift & 3D Shading"
+                  value={options.facialParts?.cheekboneLift ?? 35}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('cheekboneLift', v)}
+                />
+                <Slider
+                  label="Double Chin / Neck Shadow Lift"
+                  value={options.facialParts?.neckShadowLift ?? 35}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('neckShadowLift', v)}
+                />
+                <Slider
+                  label="Ear Contour & Hairline Crispness"
+                  value={options.facialParts?.earDefine ?? 25}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => updateFacialPart('earDefine', v)}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* 5. Action Buttons & Export */}
           <div className="space-y-3">
             {isProcessing && (
               <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50/90 to-blue-50/90 dark:from-indigo-950/60 dark:to-blue-950/60 border border-indigo-200 dark:border-indigo-800 shadow-sm space-y-2.5 animate-in fade-in">
