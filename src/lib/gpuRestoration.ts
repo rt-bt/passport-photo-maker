@@ -135,9 +135,18 @@ export async function restoreImageWithGpu(
 
     if (res.ok) {
       const data = await res.json();
+      let finalDataUrl = data.image;
+
+      // If B&W to Color Colorization or manual facial parts is requested, apply it directly!
+      if (options.colorize?.enabled || options.facialParts) {
+        const clientHw = await detectClientHardware();
+        const colorized = await restoreImageClientSide(finalDataUrl, options, clientHw.gpuName);
+        finalDataUrl = colorized.dataUrl;
+      }
+
       return {
         success: true,
-        dataUrl: data.image,
+        dataUrl: finalDataUrl,
         processingTimeMs: data.processing_time_ms,
         originalWidth: data.original_width,
         originalHeight: data.original_height,

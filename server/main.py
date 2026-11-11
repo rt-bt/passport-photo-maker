@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
 
 try:
     from server.engine import engine
@@ -48,6 +49,8 @@ class RestoreRequest(BaseModel):
     denoise: int = Field(default=20, ge=0, le=100, description="Noise reduction strength")
     sharpen: int = Field(default=30, ge=0, le=100, description="High-frequency detail sharpening")
     output_format: str = Field(default="jpeg", description="Output format: jpeg, png, webp")
+    facial_parts: Optional[Dict[str, Any]] = None
+    colorize: Optional[Dict[str, Any]] = None
 
 def decode_base64_image(b64_str: str) -> np.ndarray:
     if ',' in b64_str:

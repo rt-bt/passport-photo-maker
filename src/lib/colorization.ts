@@ -14,31 +14,86 @@ export interface RgbColor {
 }
 
 export const SKIN_TONE_PALETTES: Record<SkinTonePreset, RgbColor> = {
-  auto: { r: 228, g: 182, b: 148 }, // Default wheatish / natural
-  wheatish: { r: 228, g: 182, b: 148 }, // Classic natural South Asian / Mediterranean
-  fair: { r: 244, g: 206, b: 186 },
-  medium: { r: 216, g: 170, b: 135 },
-  olive: { r: 198, g: 154, b: 118 },
-  deep: { r: 148, g: 104, b: 76 },
+  auto: { r: 232, g: 172, b: 130 },
+  wheatish: { r: 232, g: 172, b: 130 }, // Rich natural South Asian / Wheatish
+  fair: { r: 248, g: 198, b: 172 },
+  medium: { r: 220, g: 158, b: 118 },
+  olive: { r: 202, g: 148, b: 104 },
+  deep: { r: 152, g: 98, b: 68 },
 };
 
 export const CLOTHING_PALETTES: Record<ClothingColorPreset, RgbColor> = {
-  auto: { r: 35, g: 58, b: 98 }, // Classic Navy Blue
-  navy: { r: 35, g: 58, b: 98 },
-  black: { r: 30, g: 30, b: 32 },
-  charcoal: { r: 55, g: 60, b: 68 },
-  maroon: { r: 105, g: 32, b: 45 },
-  royal_blue: { r: 42, g: 82, b: 148 },
-  forest_green: { r: 38, g: 72, b: 52 },
+  auto: { r: 28, g: 56, b: 110 }, // Classic Navy Blue
+  navy: { r: 28, g: 56, b: 110 },
+  black: { r: 28, g: 28, b: 30 },
+  charcoal: { r: 48, g: 54, b: 64 },
+  maroon: { r: 118, g: 28, b: 42 },
+  royal_blue: { r: 35, g: 82, b: 158 },
+  forest_green: { r: 32, g: 76, b: 48 },
 };
 
 export const BACKGROUND_PALETTES: Record<BackgroundColorPreset, RgbColor> = {
   original: { r: 215, g: 220, b: 228 },
-  studio_blue: { r: 182, g: 210, b: 238 },
-  passport_blue: { r: 72, g: 138, b: 212 },
-  light_gray: { r: 222, g: 224, b: 228 },
-  off_white: { r: 245, g: 245, b: 246 },
+  studio_blue: { r: 65, g: 142, b: 218 }, // Clear vibrant studio blue
+  passport_blue: { r: 45, g: 118, b: 205 },
+  light_gray: { r: 216, g: 218, b: 222 },
+  off_white: { r: 242, g: 242, b: 244 },
 };
+
+/**
+ * Converts RGB [0-255] to HSL [0-1]
+ */
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      case b:
+        h = ((r - g) / d + 4) / 6;
+        break;
+    }
+  }
+  return [h, s, l];
+}
+
+/**
+ * Converts HSL [0-1] to RGB [0-255]
+ */
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  if (s === 0) {
+    const val = Math.round(l * 255);
+    return [val, val, val];
+  }
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const r = hue2rgb(p, q, h + 1 / 3);
+  const g = hue2rgb(p, q, h);
+  const b = hue2rgb(p, q, h - 1 / 3);
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
 
 /**
  * Checks if an image is grayscale, black & white, or sepia aged
@@ -61,12 +116,11 @@ export function isImageGrayscaleOrSepia(
   }
 
   const avgDiff = colorDiffSum / count;
-  // If average color variance between channels is low (< 18), it is B&W or faint sepia
   return avgDiff < 18;
 }
 
 /**
- * Colorizes a Black & White or Sepia portrait directly on canvas
+ * Colorizes a Black & White or Sepia portrait directly on canvas using photographic HSL transfer
  */
 export function colorizeGrayscalePortrait(
   ctx: CanvasRenderingContext2D,
@@ -81,44 +135,45 @@ export function colorizeGrayscalePortrait(
   const skinPreset = options.skinTone || 'wheatish';
   const clothPreset = options.clothingColor || 'navy';
   const bgPreset = options.backgroundColor || 'studio_blue';
-  const vibrancy = (options.vibrancy ?? 70) / 100;
+  const vibrancy = (options.vibrancy ?? 80) / 100;
   const warmth = (options.colorWarmth ?? 10) / 100;
   const deSepia = options.vintageDeSepia ?? true;
 
-  const skinBase = SKIN_TONE_PALETTES[skinPreset] || SKIN_TONE_PALETTES.wheatish;
-  const clothBase = CLOTHING_PALETTES[clothPreset] || CLOTHING_PALETTES.navy;
-  const bgBase = BACKGROUND_PALETTES[bgPreset] || BACKGROUND_PALETTES.studio_blue;
+  const skinRgb = SKIN_TONE_PALETTES[skinPreset] || SKIN_TONE_PALETTES.wheatish;
+  const clothRgb = CLOTHING_PALETTES[clothPreset] || CLOTHING_PALETTES.navy;
+  const bgRgb = BACKGROUND_PALETTES[bgPreset] || BACKGROUND_PALETTES.studio_blue;
+
+  // Extract base HSL for each semantic palette
+  const [skinH, skinS] = rgbToHsl(skinRgb.r, skinRgb.g, skinRgb.b);
+  const [clothH, clothS] = rgbToHsl(clothRgb.r, clothRgb.g, clothRgb.b);
+  const [bgH, bgS] = rgbToHsl(bgRgb.r, bgRgb.g, bgRgb.b);
 
   const dist = (x1: number, y1: number, x2: number, y2: number) =>
     Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 
-  const totalPixels = width * height;
-
-  // Face center and boundaries
+  // Face metrics
   const faceCenterX = regions.box.x + regions.box.width * 0.5;
-  const faceCenterY = regions.box.y + regions.box.height * 0.5;
-  const faceRadius = Math.max(regions.box.width, regions.box.height) * 0.58;
+  const faceCenterY = regions.box.y + regions.box.height * 0.52;
+  const faceRadius = Math.max(regions.box.width, regions.box.height) * 0.56;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      let r = data[idx];
-      let g = data[idx + 1];
-      let b = data[idx + 2];
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
 
-      // 1. Calculate neutral grayscale luminance (removes old sepia staining)
+      // 1. Calculate neutral grayscale luminance (normalizes old sepia stains)
       let lum = 0.299 * r + 0.587 * g + 0.114 * b;
       if (deSepia) {
-        // Stretch contrast slightly for clean deep blacks and bright whites
-        lum = Math.min(255, Math.max(0, (lum - 10) * 1.08));
+        lum = Math.min(255, Math.max(0, (lum - 8) * 1.07));
       }
       const normLum = lum / 255;
 
       // 2. Identify semantic facial & portrait zone
-      let targetR = bgBase.r;
-      let targetG = bgBase.g;
-      let targetB = bgBase.b;
-      let zoneType: 'skin' | 'eye' | 'lip' | 'hair' | 'cloth' | 'bg' = 'bg';
+      let targetH = bgH;
+      let targetS = bgS;
+      let targetL = normLum;
 
       // Distance from face center
       const dFace = dist(x, y, faceCenterX, faceCenterY);
@@ -140,112 +195,76 @@ export function colorizeGrayscalePortrait(
         y >= regions.mouth.y &&
         y <= regions.mouth.y + regions.mouth.h;
 
-      // Hair Zone (Above eyes, crown, temples, sides)
+      // Hair Zone (Above forehead and outer temple edges)
       const isHair =
-        (y < regions.box.y + regions.box.height * 0.25 &&
-          Math.abs(x - faceCenterX) < regions.box.width * 0.55) ||
-        (y < regions.box.y + regions.box.height * 0.45 &&
-          (x < regions.box.x + regions.box.width * 0.15 ||
-            x > regions.box.x + regions.box.width * 0.85) &&
-          dFace < faceRadius * 1.15);
+        (y < regions.box.y + regions.box.height * 0.28 &&
+          Math.abs(x - faceCenterX) < regions.box.width * 0.6) ||
+        (y < regions.box.y + regions.box.height * 0.48 &&
+          (x < regions.box.x + regions.box.width * 0.12 ||
+            x > regions.box.x + regions.box.width * 0.88) &&
+          dFace < faceRadius * 1.18);
 
       // Clothing Zone (Below chin / jawline)
-      const isClothing = y > regions.jawline.y + regions.jawline.h * 0.35 && dFace > faceRadius * 0.7;
+      const isClothing = y > regions.jawline.y + regions.jawline.h * 0.32 && dFace > faceRadius * 0.68;
 
       if (isClothing) {
-        zoneType = 'cloth';
-        // If near center top of clothing and bright -> formal shirt collar (clean off-white)
+        // Formal white shirt collar check right under chin
         const isShirtCollar =
-          normLum > 0.65 &&
-          Math.abs(x - faceCenterX) < regions.box.width * 0.35 &&
-          y < regions.jawline.y + regions.jawline.h * 1.2;
+          normLum > 0.62 &&
+          Math.abs(x - faceCenterX) < regions.box.width * 0.38 &&
+          y < regions.jawline.y + regions.jawline.h * 1.25;
 
         if (isShirtCollar) {
-          targetR = 245;
-          targetG = 246;
-          targetB = 248;
+          targetH = 0.58; // crisp cool white
+          targetS = 0.05;
         } else {
-          targetR = clothBase.r;
-          targetG = clothBase.g;
-          targetB = clothBase.b;
+          targetH = clothH;
+          targetS = clothS * 1.1;
         }
-      } else if (isHair && normLum < 0.55) {
-        zoneType = 'hair';
-        // Rich natural dark chestnut/black hair
-        targetR = 38;
-        targetG = 30;
-        targetB = 28;
+      } else if (isHair && normLum < 0.58) {
+        // Natural rich deep brown/black hair
+        targetH = 0.07; // warm dark tone
+        targetS = 0.35;
       } else if (isEye) {
-        zoneType = 'eye';
         const eyeDist = Math.min(dLeftEye, dRightEye);
-        if (eyeDist < regions.leftEye.r * 0.45) {
-          // Iris / Pupil: natural warm dark brown
-          targetR = 75;
-          targetG = 50;
-          targetB = 40;
+        if (eyeDist < regions.leftEye.r * 0.42) {
+          // Iris / Pupil: natural warm amber-brown
+          targetH = 0.08;
+          targetS = 0.65;
         } else {
           // Sclera: clean natural eye white
-          targetR = 242;
-          targetG = 244;
-          targetB = 246;
+          targetH = 0.55;
+          targetS = 0.08;
         }
-      } else if (isMouth && normLum > 0.15 && normLum < 0.78) {
-        zoneType = 'lip';
+      } else if (isMouth && normLum > 0.12 && normLum < 0.82) {
         // Natural rosy/pink lip pigmentation
-        targetR = Math.min(255, skinBase.r + 28);
-        targetG = Math.max(0, skinBase.g - 35);
-        targetB = Math.max(0, skinBase.b - 15);
+        targetH = 0.96; // red/pink hue
+        targetS = 0.55;
       } else if (dFace < faceRadius || isInsideFaceBounds) {
-        zoneType = 'skin';
-        targetR = skinBase.r;
-        targetG = skinBase.g;
-        targetB = skinBase.b;
+        // Skin Zone: apply selected skin tone palette
+        targetH = skinH + warmth * 0.04;
+        targetS = skinS;
 
-        // Subtle anatomical skin gradients:
-        // Cheeks: slightly warmer rosy blush
+        // Rosy blush on cheeks
         const dLeftCheek = dist(x, y, regions.leftCheek.x, regions.leftCheek.y);
         const dRightCheek = dist(x, y, regions.rightCheek.x, regions.rightCheek.y);
         if (dLeftCheek < regions.leftCheek.r || dRightCheek < regions.rightCheek.r) {
-          targetR = Math.min(255, targetR + 14);
-          targetG = Math.max(0, targetG - 4);
-        }
-
-        // Forehead: golden radiant warmth
-        if (y < regions.box.y + regions.box.height * 0.35) {
-          targetR = Math.min(255, targetR + 6);
-          targetG = Math.min(255, targetG + 4);
+          targetH = Math.max(0.01, targetH - 0.02);
+          targetS = Math.min(1.0, targetS * 1.15);
         }
       } else {
-        zoneType = 'bg';
-        targetR = bgBase.r;
-        targetG = bgBase.g;
-        targetB = bgBase.b;
+        // Background Zone: apply selected studio backdrop
+        targetH = bgH;
+        targetS = bgS * 1.1;
       }
 
-      // 3. Apply Color Warmth modifier
-      if (warmth !== 0 && (zoneType === 'skin' || zoneType === 'hair')) {
-        targetR = Math.min(255, targetR + warmth * 18);
-        targetG = Math.min(255, targetG + warmth * 6);
-        targetB = Math.max(0, targetB - warmth * 12);
-      }
+      // 3. Synthesize photographic RGB from Target HSL
+      const effectiveS = Math.max(0, Math.min(1.0, targetS * vibrancy));
+      const [newR, newG, newB] = hslToRgb(targetH, effectiveS, targetL);
 
-      // 4. Photographic Luminance Synthesis:
-      // Preserves 100% of original lighting, shading, wrinkles, and sharpness
-      // while injecting realistic chrominance
-      let colorR = (targetR / 255) * lum * (1.6 - 0.6 * normLum);
-      let colorG = (targetG / 255) * lum * (1.6 - 0.6 * normLum);
-      let colorB = (targetB / 255) * lum * (1.6 - 0.6 * normLum);
-
-      // 5. Vibrancy Blend (mix with original grayscale for photorealistic saturation)
-      const blend = Math.max(0.1, Math.min(1.0, vibrancy));
-      r = Math.round(lum * (1 - blend) + colorR * blend);
-      g = Math.round(lum * (1 - blend) + colorG * blend);
-      b = Math.round(lum * (1 - blend) + colorB * blend);
-
-      // Clamp
-      data[idx] = Math.max(0, Math.min(255, r));
-      data[idx + 1] = Math.max(0, Math.min(255, g));
-      data[idx + 2] = Math.max(0, Math.min(255, b));
+      data[idx] = newR;
+      data[idx + 1] = newG;
+      data[idx + 2] = newB;
     }
   }
 
