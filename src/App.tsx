@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { I18nProvider } from './i18n';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
@@ -14,15 +14,18 @@ import { Modal } from './components/common/Modal';
 import { ComplianceChecklist } from './components/features/ComplianceChecklist';
 import { BatchProcessorModal } from './components/features/BatchProcessorModal';
 import { GpuRestorationModal } from './components/features/GpuRestorationModal';
+import { GpuHardwareModal } from './components/features/GpuHardwareModal';
 import { RestorationStudio } from './components/studio/RestorationStudio';
 import { PASSPORT_PRESETS } from './lib/presets';
-import { PassportPreset, AppMode } from './types';
+import { PassportPreset, AppMode, GpuServerStatus } from './types';
 import { CompressResult } from './lib/compression';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { LicenseStatus } from './types/subscription';
 import { getSavedLicense, clearActiveLicense } from './lib/licensing';
+import { checkGpuServerHealth } from './lib/gpuRestoration';
 import { SubscriptionGate } from './components/subscription/SubscriptionGate';
 import { SubscriptionStatusModal } from './components/subscription/SubscriptionStatusModal';
+import { Zap, X } from 'lucide-react';
 
 export const MainApp: React.FC = () => {
   const [license, setLicense] = useState<LicenseStatus>(() => getSavedLicense());
@@ -30,6 +33,11 @@ export const MainApp: React.FC = () => {
   const [activeMode, setActiveMode] = useState<AppMode>('passport');
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [maxReachedStep, setMaxReachedStep] = useState<number>(1);
+
+  // GPU Auto-Connection State
+  const [gpuStatus, setGpuStatus] = useState<GpuServerStatus | null>(null);
+  const [isGpuInfoOpen, setIsGpuInfoOpen] = useState<boolean>(false);
+  const [showGpuToast, setShowGpuToast] = useState<boolean>(false);
 
   // Stored preferences
   const [savedPresetId, setSavedPresetId] = useLocalStorage<string>(
@@ -55,6 +63,26 @@ export const MainApp: React.FC = () => {
   const [isBatchOpen, setIsBatchOpen] = useState<boolean>(false);
   const [isGpuModalOpen, setIsGpuModalOpen] = useState<boolean>(false);
   const [gpuModalImage, setGpuModalImage] = useState<string | null>(null);
+
+  // Auto-connect to physical system GPU as soon as the repo is browsed
+  useEffect(() => {
+    let mounted = true;
+    checkGpuServerHealth().then((status) => {
+      if (mounted) {
+        setGpuStatus(status);
+        if (status.online) {
+          setShowGpuToast(true);
+          const t = setTimeout(() => {
+            if (mounted) setShowGpuToast(false);
+          }, 4500);
+          return () => clearTimeout(t);
+        }
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const openGpuRestore = (initialImg?: string) => {
     setGpuModalImage(initialImg || bgProcessedImage || croppedImage || rawImage || null);
@@ -117,7 +145,7 @@ export const MainApp: React.FC = () => {
         activeMode={activeMode}
         onChangeMode={setActiveMode}
         onOpenBatch={() => setIsBatchOpen(true)}
-        onOpenGpuModal={() => openGpuRestore()}
+        onOpenGpuModal={() => setIsGpuInfoOpen(true)}
         license={license}
         onOpenLicense={() => setIsLicenseModalOpen(true)}
       />
@@ -282,6 +310,46 @@ export const MainApp: React.FC = () => {
         license={license}
         onDeactivate={handleDeactivateLicense}
       />
+
+      {/* System GPU Hardware Monitor Modal */}
+      <GpuHardwareModal
+        isOpen={isGpuInfoOpen}
+        onClose={() => setIsGpuInfoOpen(false)}
+        status={gpuStatus}
+        onLaunchStudio={() => {
+          setActiveMode('restoration');
+        }}
+      />
+
+      {/* Auto-Connected System GPU Toast */}
+      {showGpuToast && gpuStatus?.online && (
+        <aside
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 p-3.5 bg-slate-900/95 text-white border border-emerald-500/50 rounded-2xl shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-5 duration-300"
+        >
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+            <Zap className="w-4 h-4 fill-emerald-400" />
+          </div>
+          <div>
+            <div className="text-xs font-bold flex items-center gap-1.5 text-white">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              System GPU Auto-Connected
+            </div>
+            <div className="text-[11px] text-slate-300">
+              {gpuStatus.gpuName} • Hardware Acceleration Ready
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowGpuToast(false)}
+            className="ml-2 text-slate-400 hover:text-white p-1 rounded-lg text-xs cursor-pointer"
+            aria-label="Dismiss notification"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </aside>
+      )}
     </div>
   );
 };

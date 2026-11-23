@@ -1,7 +1,8 @@
 /**
- * Client-side Hardware & GPU Detection Utility
- * Uses modern WebGPU and WebGL2 hardware queries to automatically detect the user's physical GPU
- * directly inside the browser (Vercel, GitHub Pages, or Localhost) without requiring any backend.
+/**
+ * Client-side Hardware & GPU Detection and Auto-Connection Engine
+ * Automatically queries and connects to the system's physical GPU via WebGPU and WebGL2
+ * as soon as the application is browsed (on Vercel, localhost, or any web browser).
  */
 
 export interface ClientHardwareInfo {
@@ -12,9 +13,11 @@ export interface ClientHardwareInfo {
   webglSupported: boolean;
   performanceTier: 'ultra' | 'high' | 'medium' | 'basic';
   summary: string;
+  connectedAt?: string;
+  device?: any;
 }
 
-function cleanGpuName(raw: string): string {
+export function cleanGpuName(raw: string): string {
   if (!raw) return 'System GPU';
 
   // 1. ANGLE pattern: ANGLE (Vendor, GPU_NAME (0x...) Direct3D..., ...)
@@ -53,9 +56,20 @@ function cleanGpuName(raw: string): string {
 }
 
 let cachedHardwareInfo: ClientHardwareInfo | null = null;
+let activeGpuDevice: any = null;
+let activeGpuAdapter: any = null;
+
+export function getActiveGpuDevice(): any {
+  return activeGpuDevice;
+}
+
+export function getActiveGpuAdapter(): any {
+  return activeGpuAdapter;
+}
 
 /**
- * Automatically inspects the browser's physical GPU adapter using WebGPU and WebGL2.
+ * Automatically inspects and connects to the browser's physical GPU adapter
+ * using WebGPU high-performance request and WebGL2 hardware unmasking.
  */
 export async function detectClientHardware(): Promise<ClientHardwareInfo> {
   if (cachedHardwareInfo) {
@@ -68,14 +82,23 @@ export async function detectClientHardware(): Promise<ClientHardwareInfo> {
   let webgpuSupported = false;
   let webglSupported = false;
 
-  // 1. Try WebGPU (Modern Chromium, Edge, Opera, Safari 18+)
+  // 1. Query and Connect via WebGPU (Chrome, Edge, Opera, Safari 18+)
   if (typeof navigator !== 'undefined' && 'gpu' in navigator && (navigator as any).gpu) {
     try {
       const adapter = await (navigator as any).gpu.requestAdapter({
         powerPreference: 'high-performance',
       });
       if (adapter) {
+        activeGpuAdapter = adapter;
         webgpuSupported = true;
+
+        // Establish live connection to the physical GPU device
+        if (!activeGpuDevice && adapter.requestDevice) {
+          try {
+            activeGpuDevice = await adapter.requestDevice();
+          } catch {}
+        }
+
         const info = (adapter as any).info || (await (adapter as any).requestAdapterInfo?.());
         if (info) {
           if (info.description) {
@@ -89,11 +112,11 @@ export async function detectClientHardware(): Promise<ClientHardwareInfo> {
         }
       }
     } catch {
-      // WebGPU adapter request failed; proceed to WebGL
+      // WebGPU request skipped; fallback to WebGL2
     }
   }
 
-  // 2. Query WebGL2 / WebGL debug renderer info (extremely detailed on Windows/macOS/Linux)
+  // 2. Query WebGL2 / WebGL hardware renderer info
   if (typeof document !== 'undefined') {
     try {
       const canvas = document.createElement('canvas');
@@ -107,8 +130,18 @@ export async function detectClientHardware(): Promise<ClientHardwareInfo> {
         if (debugInfo) {
           const unmaskedRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
           const unmaskedVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
-          if (unmaskedRenderer && (gpuName === 'System Hardware' || gpuName.length < 5)) {
-            gpuName = cleanGpuName(unmaskedRenderer);
+          if (unmaskedRenderer) {
+            const webglCleaned = cleanGpuName(unmaskedRenderer);
+            // Prefer the more specific GPU name
+            if (
+              gpuName === 'System Hardware' ||
+              gpuName.length < 6 ||
+              (!/rtx|gtx|geforce|radeon|rx|arc/i.test(gpuName) &&
+                /rtx|gtx|geforce|radeon|rx|arc/i.test(webglCleaned)) ||
+              webglCleaned.length > gpuName.length
+            ) {
+              gpuName = webglCleaned;
+            }
           }
           if (unmaskedVendor && vendor === 'Generic') {
             vendor = unmaskedVendor;
@@ -150,7 +183,14 @@ export async function detectClientHardware(): Promise<ClientHardwareInfo> {
     webglSupported,
     performanceTier,
     summary,
+    connectedAt: new Date().toLocaleTimeString(),
+    device: activeGpuDevice,
   };
 
   return cachedHardwareInfo;
+}
+
+// Auto-initialize connection to the system GPU immediately when script is imported
+if (typeof window !== 'undefined') {
+  detectClientHardware().catch(() => {});
 }

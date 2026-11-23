@@ -33,6 +33,7 @@ let cachedStatus: { status: GpuServerStatus; timestamp: number } | null = null;
 
 /**
  * Checks the status and connectivity of the local or cloud GPU AI engine
+ * and automatically connects directly to the system GPU in the browser.
  */
 export async function checkGpuServerHealth(
   serverUrl = getGpuServerUrl(),
@@ -43,40 +44,57 @@ export async function checkGpuServerHealth(
     return cachedStatus.status;
   }
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
+  // Detect in-browser physical hardware GPU immediately (WebGPU/WebGL2)
+  const clientHwPromise = detectClientHardware();
 
-    const res = await fetch(`${serverUrl}/status`, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
+  let serverConnected = false;
+  let serverData: any = null;
 
-    if (res.ok) {
-      const data = await res.json();
-      const status: GpuServerStatus = {
-        online: true,
-        serverConnected: true,
-        engineMode: 'local_cuda',
-        gpuName: data.gpu_name || 'AI GPU Accelerator',
-        vramFreeMb: data.vram_free_mb,
-        vramTotalMb: data.vram_total_mb,
-        cudaAvailable: data.cuda_available ?? true,
-        performanceProfile: data.performance_profile || 'PyTorch CUDA Neural Mode',
-        modelsLoaded: data.models_loaded || ['GFPGANv1.4', 'RealESRGAN'],
-        version: data.version || '2.0.0',
-      };
-      cachedStatus = { status, timestamp: now };
-      return status;
+  const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  const isLocalHttp = serverUrl.startsWith('http://');
+
+  // Avoid mixed content blocks and long timeouts on HTTPS
+  if (!isHttps || !isLocalHttp) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600);
+
+      const res = await fetch(`${serverUrl}/status`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        serverData = await res.json();
+        serverConnected = true;
+      }
+    } catch {
+      // Local server offline or blocked
     }
-  } catch {
-    // Server is unreachable / offline
   }
 
-  // Automatic In-Browser GPU Hardware Detection (Works live on Vercel without server)
-  const clientHw = await detectClientHardware();
+  const clientHw = await clientHwPromise;
+
+  if (serverConnected && serverData) {
+    const status: GpuServerStatus = {
+      online: true,
+      serverConnected: true,
+      engineMode: 'local_cuda',
+      gpuName: serverData.gpu_name || clientHw.gpuName || 'AI GPU Accelerator',
+      vramFreeMb: serverData.vram_free_mb,
+      vramTotalMb: serverData.vram_total_mb,
+      cudaAvailable: serverData.cuda_available ?? true,
+      performanceProfile: serverData.performance_profile || 'PyTorch CUDA Neural Mode',
+      modelsLoaded: serverData.models_loaded || ['GFPGANv1.4', 'RealESRGAN'],
+      version: serverData.version || '2.0.0',
+    };
+    cachedStatus = { status, timestamp: now };
+    return status;
+  }
+
+  // Automatic In-Browser Physical GPU Hardware Connection (Works live on Vercel)
   const hasBrowserHardware = clientHw.webgpuSupported || clientHw.webglSupported;
 
   const fallbackStatus: GpuServerStatus = {
