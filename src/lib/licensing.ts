@@ -2,9 +2,10 @@ import { PlanDuration, APP_PLANS, LicenseStatus } from '../types/subscription';
 
 const SECRET_SALT = 'APP_ACCESS_TOKEN_SALT_2026_SECURE';
 const STORAGE_KEY = 'app_user_license_key';
+const STORAGE_EMAIL_KEY = 'app_user_license_email';
 
 // Fast pure JS 32-bit FNV-1a & Murmur3 mix for signature checking
-function computeSignature(payload: string): string {
+export function computeSignature(payload: string): string {
   let h1 = 0xdeadbeef;
   let h2 = 0x41c6ce57;
   const str = SECRET_SALT + payload + SECRET_SALT;
@@ -21,30 +22,39 @@ function computeSignature(payload: string): string {
 }
 
 /**
- * Creates a signed client license key
+ * Creates a signed client license key tied to an Email ID or Name
  */
-export function generateClientLicense(clientName: string, plan: PlanDuration): string {
+export function generateClientLicense(clientEmailOrName: string, plan: PlanDuration): string {
   const planConfig = APP_PLANS[plan];
   if (!planConfig) throw new Error('Unknown subscription plan');
 
-  const cleanName = clientName
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '')
-    .substring(0, 8) || 'CLIENT';
+  const normalized = clientEmailOrName.trim().toLowerCase();
+  const isEmail = normalized.includes('@');
+
+  let clientTag: string;
+  if (isEmail) {
+    const emailPrefix = normalized.split('@')[0];
+    const cleanPrefix = emailPrefix.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4) || 'USER';
+    const emailHash = computeSignature('EM:' + normalized).substring(0, 4);
+    clientTag = `${cleanPrefix}${emailHash}`;
+  } else {
+    clientTag = normalized.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 8) || 'CLIENT';
+  }
 
   const nowDays = Math.floor(Date.now() / 86400000);
   const expiryDays = planConfig.days === 0 ? 0 : nowDays + planConfig.days;
 
-  const payload = `${planConfig.code}-${cleanName}-${expiryDays}`;
-  const sig = computeSignature(payload);
+  const payload = `${planConfig.code}-${clientTag}-${expiryDays}`;
+  // Cryptographically bind the user's email/identifier to the signature
+  const sig = computeSignature(`${payload}:${normalized}`);
 
   return `TT-${payload}-${sig}`;
 }
 
 /**
- * Verifies and parses a client license key
+ * Verifies and parses a client license key against the provided User Email
  */
-export function verifyClientLicense(licenseKey: string): LicenseStatus {
+export function verifyClientLicense(licenseKey: string, userEmail?: string): LicenseStatus {
   if (!licenseKey || typeof licenseKey !== 'string') {
     return { active: false, error: 'No license key provided' };
   }
@@ -52,16 +62,38 @@ export function verifyClientLicense(licenseKey: string): LicenseStatus {
   const trimmed = licenseKey.trim().toUpperCase();
   const parts = trimmed.split('-');
 
-  // Format: TT-<CODE>-<CLIENT>-<EXPIRY_DAYS>-<SIG>
+  // Format: TT-<CODE>-<CLIENT_TAG>-<EXPIRY_DAYS>-<SIG>
   if (parts.length !== 5 || parts[0] !== 'TT') {
     return { active: false, error: 'Invalid license format. Expected TT-XXX-XXXX-XXXX-XXXX' };
   }
 
   const [_, code, client, expiryDaysStr, sig] = parts;
   const payload = `${code}-${client}-${expiryDaysStr}`;
-  const expectedSig = computeSignature(payload);
 
-  if (sig !== expectedSig) {
+  // Signature validation
+  let isValidSig = false;
+  const normalizedEmail = userEmail ? userEmail.trim().toLowerCase() : null;
+
+  if (normalizedEmail) {
+    // Check with the provided user email
+    if (sig === computeSignature(`${payload}:${normalizedEmail}`)) {
+      isValidSig = true;
+    }
+  }
+
+  // Fallbacks: check without email salt or check payload alone (for backward compatibility)
+  if (!isValidSig) {
+    if (sig === computeSignature(payload)) {
+      isValidSig = true;
+    } else if (sig === computeSignature(`${payload}:${client.toLowerCase()}`)) {
+      isValidSig = true;
+    }
+  }
+
+  if (!isValidSig) {
+    if (normalizedEmail) {
+      return { active: false, error: 'License key does not match this Email ID.' };
+    }
     return { active: false, error: 'License verification failed. Signature mismatch.' };
   }
 
@@ -82,6 +114,7 @@ export function verifyClientLicense(licenseKey: string): LicenseStatus {
       active: true,
       code: trimmed,
       client,
+      email: normalizedEmail || undefined,
       plan: 'lifetime',
       planTitle: 'Lifetime Access',
       expiryDate: 'Never (Lifetime)',
@@ -99,6 +132,7 @@ export function verifyClientLicense(licenseKey: string): LicenseStatus {
       active: false,
       code: trimmed,
       client,
+      email: normalizedEmail || undefined,
       plan: planEntry.id,
       planTitle: planEntry.title,
       expiryDate: expiredDate,
@@ -112,6 +146,7 @@ export function verifyClientLicense(licenseKey: string): LicenseStatus {
     active: true,
     code: trimmed,
     client,
+    email: normalizedEmail || undefined,
     plan: planEntry.id,
     planTitle: planEntry.title,
     expiryDate: validUntil,
@@ -126,9 +161,6 @@ function getStorageItem(key: string): string | null {
     if (typeof window !== 'undefined' && window.localStorage) {
       return window.localStorage.getItem(key);
     }
-    if (typeof localStorage !== 'undefined' && localStorage.getItem) {
-      return localStorage.getItem(key);
-    }
   } catch {}
   return memoryStorage[key] || null;
 }
@@ -137,10 +169,6 @@ function setStorageItem(key: string, val: string): void {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem(key, val);
-      return;
-    }
-    if (typeof localStorage !== 'undefined' && localStorage.setItem) {
-      localStorage.setItem(key, val);
       return;
     }
   } catch {}
@@ -152,20 +180,20 @@ function removeStorageItem(key: string): void {
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.removeItem(key);
     }
-    if (typeof localStorage !== 'undefined' && localStorage.removeItem) {
-      localStorage.removeItem(key);
-    }
   } catch {}
   delete memoryStorage[key];
 }
 
 /**
- * Saves and activates a license key in localStorage
+ * Saves and activates a license key in localStorage with the user's email
  */
-export function activateLicense(licenseKey: string): LicenseStatus {
-  const result = verifyClientLicense(licenseKey);
+export function activateLicense(licenseKey: string, userEmail?: string): LicenseStatus {
+  const result = verifyClientLicense(licenseKey, userEmail);
   if (result.active) {
     setStorageItem(STORAGE_KEY, licenseKey.trim().toUpperCase());
+    if (userEmail) {
+      setStorageItem(STORAGE_EMAIL_KEY, userEmail.trim().toLowerCase());
+    }
   }
   return result;
 }
@@ -175,13 +203,14 @@ export function activateLicense(licenseKey: string): LicenseStatus {
  */
 export function getSavedLicense(): LicenseStatus {
   try {
-    const stored = getStorageItem(STORAGE_KEY);
-    if (!stored) {
+    const storedKey = getStorageItem(STORAGE_KEY);
+    const storedEmail = getStorageItem(STORAGE_EMAIL_KEY);
+    if (!storedKey) {
       return { active: false };
     }
-    const verified = verifyClientLicense(stored);
+    const verified = verifyClientLicense(storedKey, storedEmail || undefined);
     if (!verified.active) {
-      removeStorageItem(STORAGE_KEY);
+      clearActiveLicense();
     }
     return verified;
   } catch {
@@ -194,4 +223,5 @@ export function getSavedLicense(): LicenseStatus {
  */
 export function clearActiveLicense(): void {
   removeStorageItem(STORAGE_KEY);
+  removeStorageItem(STORAGE_EMAIL_KEY);
 }

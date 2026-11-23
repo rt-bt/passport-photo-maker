@@ -6,10 +6,9 @@ import {
   Sparkles,
   Camera,
   CheckCircle2,
-  Calendar,
   AlertCircle,
-  HelpCircle,
-  Settings
+  Settings,
+  Mail
 } from 'lucide-react';
 import { APP_PLANS, PlanDuration, LicenseStatus } from '../../types/subscription';
 import { activateLicense } from '../../lib/licensing';
@@ -20,6 +19,7 @@ interface SubscriptionGateProps {
 }
 
 export const SubscriptionGate: React.FC<SubscriptionGateProps> = ({ onSuccess }) => {
+  const [inputEmail, setInputEmail] = useState('');
   const [inputKey, setInputKey] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
@@ -30,24 +30,32 @@ export const SubscriptionGate: React.FC<SubscriptionGateProps> = ({ onSuccess })
   const handleActivate = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
-    if (!inputKey.trim()) {
-      setErrorMsg('Please enter your Client ID / License Key to continue.');
+
+    const emailTrimmed = inputEmail.trim();
+    const keyTrimmed = inputKey.trim();
+
+    if (!emailTrimmed) {
+      setErrorMsg('Please enter your authorized User ID (Email Address).');
       return;
     }
 
-    const res = activateLicense(inputKey);
+    if (!keyTrimmed) {
+      setErrorMsg('Please enter your Client License Key.');
+      return;
+    }
+
+    const res = activateLicense(keyTrimmed, emailTrimmed);
     if (res.active) {
       onSuccess(res);
     } else {
-      setErrorMsg(res.error || 'Invalid or expired Client ID. Please verify your key.');
+      setErrorMsg(res.error || 'Invalid or expired Client ID. Please verify your credentials.');
     }
   };
 
   const handleOpenAdmin = (e: React.FormEvent) => {
     e.preventDefault();
     setAdminError(null);
-    // Default admin master passkey (can be updated by repository owner)
-    if (adminPassword === 'admin2026' || adminPassword === 'truetone2026') {
+    if (adminPassword === 'Admin@1.23#') {
       setAdminPassPrompt(false);
       setAdminPassword('');
       setIsAdminModalOpen(true);
@@ -78,7 +86,11 @@ export const SubscriptionGate: React.FC<SubscriptionGateProps> = ({ onSuccess })
         {/* Discreet Admin Button */}
         <button
           type="button"
-          onClick={() => setAdminPassPrompt(true)}
+          onClick={() => {
+            setAdminError(null);
+            setAdminPassword('');
+            setAdminPassPrompt(true);
+          }}
           className="text-xs text-slate-400 hover:text-slate-200 py-1.5 px-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
         >
           <Settings className="w-3.5 h-3.5" />
@@ -94,10 +106,10 @@ export const SubscriptionGate: React.FC<SubscriptionGateProps> = ({ onSuccess })
             Protected Studio Access
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Enter Your Client ID to Unlock Studio
+            Enter Your User ID & License Key
           </h2>
           <p className="text-sm sm:text-base text-slate-400">
-            This repository is subscription-protected. Please enter your authorized Client License ID below to unlock Passport Photo Maker, AI Studio Restoration, and Colorization.
+            This repository is subscription-protected. Enter your authorized Email ID and License Key below to unlock Passport Photo Maker, AI Studio Restoration, and Colorization.
           </p>
         </div>
 
@@ -109,7 +121,24 @@ export const SubscriptionGate: React.FC<SubscriptionGateProps> = ({ onSuccess })
           <form onSubmit={handleActivate} className="space-y-4 relative z-10">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-2">
-                Client License ID / Activation Key
+                User ID (Registered Email Address)
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                <input
+                  type="email"
+                  value={inputEmail}
+                  onChange={(e) => setInputEmail(e.target.value)}
+                  placeholder="e.g. client@example.com"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-2">
+                Client License Key / Activation Code
               </label>
               <div className="relative">
                 <KeyRound className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
@@ -117,9 +146,8 @@ export const SubscriptionGate: React.FC<SubscriptionGateProps> = ({ onSuccess })
                   type="text"
                   value={inputKey}
                   onChange={(e) => setInputKey(e.target.value)}
-                  placeholder="e.g. TT-1Y-CLIENT-20780-A4B7C9"
+                  placeholder="e.g. TT-1Y-USER4F12-21147-38F9A102"
                   className="w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-sm font-mono text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all uppercase tracking-wider"
-                  autoFocus
                 />
               </div>
             </div>
@@ -142,7 +170,7 @@ export const SubscriptionGate: React.FC<SubscriptionGateProps> = ({ onSuccess })
 
           <div className="mt-5 pt-5 border-t border-slate-800/80 text-center">
             <p className="text-xs text-slate-400">
-              Don't have a Client ID yet? Choose a subscription plan below and contact the administrator.
+              Don't have an active license? Choose a subscription plan below and contact the administrator to get your User ID activated.
             </p>
           </div>
         </div>
@@ -225,7 +253,7 @@ export const SubscriptionGate: React.FC<SubscriptionGateProps> = ({ onSuccess })
                 type="password"
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="Enter admin password (admin2026)"
+                placeholder="Enter master passkey"
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none"
                 autoFocus
               />
@@ -240,7 +268,7 @@ export const SubscriptionGate: React.FC<SubscriptionGateProps> = ({ onSuccess })
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg"
+                  className="px-4 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg cursor-pointer"
                 >
                   Enter Portal
                 </button>

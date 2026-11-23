@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crown, Calendar, User, KeyRound, LogOut, ShieldCheck, Sparkles } from 'lucide-react';
+import { Crown, Calendar, User, KeyRound, LogOut, Sparkles, Mail } from 'lucide-react';
 import { LicenseStatus } from '../../types/subscription';
 import { Modal } from '../common/Modal';
 
@@ -39,6 +39,17 @@ export const SubscriptionStatusModal: React.FC<SubscriptionStatusModalProps> = (
         </div>
 
         <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+          {license.email && (
+            <div className="py-2.5 flex items-center justify-between">
+              <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                <Mail className="w-4 h-4 text-slate-400" /> User ID (Email)
+              </span>
+              <span className="font-bold text-slate-900 dark:text-white font-mono">
+                {license.email}
+              </span>
+            </div>
+          )}
+
           <div className="py-2.5 flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2">
               <User className="w-4 h-4 text-slate-400" /> Client Identifier

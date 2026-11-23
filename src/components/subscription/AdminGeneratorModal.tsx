@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyRound, Copy, Check, ShieldCheck, Sparkles, User, Calendar, MessageSquare } from 'lucide-react';
+import { KeyRound, Copy, Check, ShieldCheck, Sparkles, Mail, User, MessageSquare } from 'lucide-react';
 import { PlanDuration, APP_PLANS } from '../../types/subscription';
 import { generateClientLicense } from '../../lib/licensing';
 import { Modal } from '../common/Modal';
@@ -10,16 +10,28 @@ interface AdminGeneratorModalProps {
 }
 
 export const AdminGeneratorModal: React.FC<AdminGeneratorModalProps> = ({ isOpen, onClose }) => {
+  const [clientEmail, setClientEmail] = useState('');
   const [clientName, setClientName] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<PlanDuration>('1_year');
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedMsg, setCopiedMsg] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
-    const name = clientName.trim() || 'CLIENT';
-    const key = generateClientLicense(name, selectedPlan);
+    setFormError(null);
+    const email = clientEmail.trim();
+    if (!email) {
+      setFormError('Please enter a valid Client Email ID.');
+      return;
+    }
+    if (!email.includes('@')) {
+      setFormError('Please enter a valid email format (e.g. client@example.com).');
+      return;
+    }
+
+    const key = generateClientLicense(email, selectedPlan);
     setGeneratedKey(key);
     setCopied(false);
     setCopiedMsg(false);
@@ -35,12 +47,14 @@ export const AdminGeneratorModal: React.FC<AdminGeneratorModalProps> = ({ isOpen
   const handleCopyWhatsAppMsg = () => {
     if (!generatedKey) return;
     const plan = APP_PLANS[selectedPlan];
+    const email = clientEmail.trim();
     const name = clientName.trim() || 'Valued Client';
     const msg = `🎉 *TrueTone & Passport Studio Pro Activated!*\n\n` +
       `👤 *Client Name:* ${name}\n` +
+      `📧 *User ID (Email):* ${email}\n` +
       `📦 *Plan:* ${plan.title}\n` +
-      `🔑 *Your Client ID:* \`${generatedKey}\`\n\n` +
-      `👉 *How to access:* Open the app website and enter your Client ID to unlock full access.\n` +
+      `🔑 *License Key:* \`${generatedKey}\`\n\n` +
+      `👉 *How to access:* Open the app website, enter your Email ID and License Key to unlock full studio access.\n` +
       `Thank you for subscribing!`;
 
     navigator.clipboard.writeText(msg);
@@ -54,14 +68,31 @@ export const AdminGeneratorModal: React.FC<AdminGeneratorModalProps> = ({ isOpen
         <div className="flex items-center gap-3 p-3.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl">
           <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
           <p className="text-xs text-blue-800 dark:text-blue-300">
-            <strong>Admin Console:</strong> Generate cryptographically signed Client IDs for customers. Each ID is tied to the selected plan and duration.
+            <strong>Admin Console:</strong> Generate cryptographically signed licenses tied directly to the client's Email ID.
           </p>
         </div>
 
         <form onSubmit={handleGenerate} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold mb-1.5 text-slate-700 dark:text-slate-300">
-              Client Name / Reference (e.g. Customer Name or Mobile)
+              Client Email Address (User ID) <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+              <input
+                type="email"
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+                placeholder="e.g. client@gmail.com"
+                required
+                className="w-full pl-10 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold mb-1.5 text-slate-700 dark:text-slate-300">
+              Client Name / Remarks (Optional)
             </label>
             <div className="relative">
               <User className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
@@ -98,8 +129,8 @@ export const AdminGeneratorModal: React.FC<AdminGeneratorModalProps> = ({ isOpen
                       {plan.title}
                       {planKey === 'lifetime' && <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />}
                     </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      {plan.days === 0 ? 'Perpetual' : `${plan.days} Days`}
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                      {plan.days === 0 ? 'Unlimited lifetime' : `${plan.days} days validity`}
                     </div>
                   </button>
                 );
@@ -107,27 +138,35 @@ export const AdminGeneratorModal: React.FC<AdminGeneratorModalProps> = ({ isOpen
             </div>
           </div>
 
+          {formError && (
+            <p className="text-xs text-rose-500">{formError}</p>
+          )}
+
           <button
             type="submit"
-            className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm transition-colors cursor-pointer shadow-md shadow-blue-500/20 flex items-center justify-center gap-2"
           >
             <KeyRound className="w-4 h-4" />
-            Generate Signed Client ID
+            Generate Client ID & License Key
           </button>
         </form>
 
         {generatedKey && (
-          <div className="p-4 bg-slate-100 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 rounded-2xl space-y-3">
+          <div className="p-4 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                <Check className="w-4 h-4" /> Client ID Generated Successfully
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Generated License Key (Ready to Deliver)
               </span>
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                {APP_PLANS[selectedPlan].title}
+              <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono">
+                {APP_PLANS[selectedPlan].code}
               </span>
             </div>
 
-            <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-sm sm:text-base font-bold text-center tracking-wider text-blue-600 dark:text-blue-400 select-all break-all">
+            <div className="text-xs text-slate-600 dark:text-slate-400">
+              <strong>User ID (Email):</strong> {clientEmail.trim().toLowerCase()}
+            </div>
+
+            <div className="p-3 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl font-mono text-xs text-blue-600 dark:text-blue-400 break-all select-all">
               {generatedKey}
             </div>
 
@@ -135,17 +174,18 @@ export const AdminGeneratorModal: React.FC<AdminGeneratorModalProps> = ({ isOpen
               <button
                 type="button"
                 onClick={handleCopyKey}
-                className="flex-1 py-2 px-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="flex-1 py-2 px-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied ? 'Copied ID!' : 'Copy Client ID'}
+                {copied ? 'Copied Key!' : 'Copy License Key'}
               </button>
+
               <button
                 type="button"
                 onClick={handleCopyWhatsAppMsg}
-                className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
               >
-                {copiedMsg ? <Check className="w-3.5 h-3.5 text-white" /> : <MessageSquare className="w-3.5 h-3.5" />}
+                {copiedMsg ? <Check className="w-3.5 h-3.5" /> : <MessageSquare className="w-3.5 h-3.5" />}
                 {copiedMsg ? 'Message Copied!' : 'Copy WhatsApp Message'}
               </button>
             </div>

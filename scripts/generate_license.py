@@ -44,41 +44,63 @@ def compute_signature(payload: str) -> str:
     p2 = f"{ctypes.c_uint32(res_h2).value:08x}"
     return (p1 + p2)[:8].upper()
 
-def generate_key(client_name: str, plan_choice: str):
+def generate_key(client_email: str, plan_choice: str, client_name: str = ""):
     if plan_choice not in PLANS:
         print("Invalid plan choice.")
         return
 
     plan_id, code, title, days = PLANS[plan_choice]
-    clean_name = ''.join(c for c in client_name.upper() if c.isalnum())[:8] or 'CLIENT'
+    normalized_email = client_email.strip().lower()
+
+    if '@' in normalized_email:
+        prefix = normalized_email.split('@')[0]
+        clean_prefix = ''.join(c for c in prefix.upper() if c.isalnum())[:4] or 'USER'
+        email_hash = compute_signature('EM:' + normalized_email)[:4]
+        client_tag = f"{clean_prefix}{email_hash}"
+    else:
+        client_tag = ''.join(c for c in normalized_email.upper() if c.isalnum())[:8] or 'CLIENT'
 
     now_days = int(time.time() // 86400)
     expiry_days = 0 if days == 0 else now_days + days
 
-    payload = f"{code}-{clean_name}-{expiry_days}"
-    sig = compute_signature(payload)
-    client_id = f"TT-{payload}-{sig}"
+    payload = f"{code}-{client_tag}-{expiry_days}"
+    sig = compute_signature(f"{payload}:{normalized_email}")
+    license_key = f"TT-{payload}-{sig}"
 
-    expiry_label = "Never (Lifetime)" if days == 0 else f"{days} Days (Expires approx: day {expiry_days})"
+    expiry_label = "Never (Lifetime)" if days == 0 else f"{days} Days"
+    name_display = client_name.strip() or normalized_email
 
-    print("\n" + "=" * 60)
-    print(f"🎉 Client License ID Generated Successfully!")
-    print("=" * 60)
-    print(f"👤 Client Name : {clean_name}")
-    print(f"📦 Plan        : {title}")
-    print(f"⏳ Validity    : {expiry_label}")
-    print(f"🔑 Client ID   : {client_id}")
-    print("=" * 60)
+    print("\n" + "=" * 65)
+    print("🎉 Client License Generated Successfully!")
+    print("=" * 65)
+    print(f"📧 User ID (Email) : {normalized_email}")
+    print(f"👤 Client Name     : {name_display}")
+    print(f"📦 Plan            : {title}")
+    print(f"⏳ Validity        : {expiry_label}")
+    print(f"🔑 License Key     : {license_key}")
+    print("=" * 65)
     print("\n📱 WhatsApp Customer Delivery Message:")
-    print("-" * 60)
-    print(f"Hello {client_name}!\nYour TrueTone & Passport Studio Pro subscription is activated.\n\nPlan: {title}\nYour Client ID: {client_id}\n\nPlease enter this ID on the website to unlock full studio access.\nThank you!")
-    print("-" * 60 + "\n")
+    print("-" * 65)
+    print(
+        f"🎉 *TrueTone & Passport Studio Pro Activated!*\n\n"
+        f"👤 *Client Name:* {name_display}\n"
+        f"📧 *User ID (Email):* {normalized_email}\n"
+        f"📦 *Plan:* {title}\n"
+        f"🔑 *License Key:* `{license_key}`\n\n"
+        f"👉 *How to access:* Open the website, enter your Email ID and License Key to unlock full studio access.\n"
+        f"Thank you for subscribing!"
+    )
+    print("-" * 65 + "\n")
 
 if __name__ == '__main__':
-    print("=" * 60)
-    print("🔑 TrueTone & Passport Studio — License Key Generator")
-    print("=" * 60)
-    name = input("Enter Client Name / Reference: ").strip() or "Client"
+    print("=" * 65)
+    print("🔑 TrueTone & Passport Studio — Admin License Generator")
+    print("=" * 65)
+    email = input("Enter Client Email ID (User ID): ").strip()
+    if not email:
+        print("Email is required.")
+        sys.exit(1)
+    name = input("Enter Client Name / Remarks (Optional): ").strip()
     print("\nSelect Subscription Plan:")
     print("  [1] 1 Month Access (30 Days)")
     print("  [2] 3 Months Access (90 Days)")
@@ -86,4 +108,4 @@ if __name__ == '__main__':
     print("  [4] 1 Year Access (365 Days)")
     print("  [5] Lifetime Access (Never Expires)")
     choice = input("Enter Choice (1-5) [default 4]: ").strip() or "4"
-    generate_key(name, choice)
+    generate_key(email, choice, name)

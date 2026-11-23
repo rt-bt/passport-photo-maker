@@ -19,6 +19,7 @@ export interface LicenseStatus {
   active: boolean;
   code?: string;
   client?: string;
+  email?: string;
   plan?: PlanDuration;
   planTitle?: string;
   expiryDate?: string | null;
