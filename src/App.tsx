@@ -19,8 +19,14 @@ import { PASSPORT_PRESETS } from './lib/presets';
 import { PassportPreset, AppMode } from './types';
 import { CompressResult } from './lib/compression';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { LicenseStatus } from './types/subscription';
+import { getSavedLicense, clearActiveLicense } from './lib/licensing';
+import { SubscriptionGate } from './components/subscription/SubscriptionGate';
+import { SubscriptionStatusModal } from './components/subscription/SubscriptionStatusModal';
 
 export const MainApp: React.FC = () => {
+  const [license, setLicense] = useState<LicenseStatus>(() => getSavedLicense());
+  const [isLicenseModalOpen, setIsLicenseModalOpen] = useState<boolean>(false);
   const [activeMode, setActiveMode] = useState<AppMode>('passport');
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [maxReachedStep, setMaxReachedStep] = useState<number>(1);
@@ -90,6 +96,21 @@ export const MainApp: React.FC = () => {
     setMaxReachedStep(1);
   };
 
+  const handleDeactivateLicense = () => {
+    clearActiveLicense();
+    setLicense({ active: false });
+    setIsLicenseModalOpen(false);
+  };
+
+  // If client does not have an active subscription, display the Subscription Gate
+  if (!license.active) {
+    return (
+      <I18nProvider>
+        <SubscriptionGate onSuccess={(newLic) => setLicense(newLic)} />
+      </I18nProvider>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       <Header
@@ -97,6 +118,8 @@ export const MainApp: React.FC = () => {
         onChangeMode={setActiveMode}
         onOpenBatch={() => setIsBatchOpen(true)}
         onOpenGpuModal={() => openGpuRestore()}
+        license={license}
+        onOpenLicense={() => setIsLicenseModalOpen(true)}
       />
 
       {/* When in dedicated AI Restoration Studio mode */}
@@ -250,6 +273,14 @@ export const MainApp: React.FC = () => {
         onClose={() => setIsGpuModalOpen(false)}
         inputImage={gpuModalImage}
         onApplyRestoredImage={handleApplyGpuRestored}
+      />
+
+      {/* Subscription Status Modal */}
+      <SubscriptionStatusModal
+        isOpen={isLicenseModalOpen}
+        onClose={() => setIsLicenseModalOpen(false)}
+        license={license}
+        onDeactivate={handleDeactivateLicense}
       />
     </div>
   );

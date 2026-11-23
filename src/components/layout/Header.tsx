@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, ShieldCheck, Sparkles, Cpu, Zap, Layers } from 'lucide-react';
+import { Camera, ShieldCheck, Sparkles, Cpu, Zap, Layers, Crown } from 'lucide-react';
 import { useI18n } from '../../i18n';
 import { ThemeLanguageToggle } from './ThemeLanguageToggle';
 import { checkGpuServerHealth } from '../../lib/gpuRestoration';
 import { GpuServerStatus, AppMode } from '../../types';
+import { LicenseStatus } from '../../types/subscription';
 
 interface HeaderProps {
   onOpenBatch?: () => void;
   onOpenGpuModal?: () => void;
   activeMode?: AppMode;
   onChangeMode?: (mode: AppMode) => void;
+  license?: LicenseStatus | null;
+  onOpenLicense?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,6 +20,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenGpuModal,
   activeMode = 'passport',
   onChangeMode,
+  license,
+  onOpenLicense,
 }) => {
   const { t } = useI18n();
   const [gpuStatus, setGpuStatus] = useState<GpuServerStatus | null>(null);
@@ -91,6 +96,23 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right side controls */}
         <div className="flex items-center gap-2.5 shrink-0">
+          {/* Active Pro Subscription Pill */}
+          {license?.active && onOpenLicense && (
+            <button
+              onClick={onOpenLicense}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 hover:from-amber-500/25 hover:to-orange-500/25 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 shadow-sm transition-all cursor-pointer"
+              title="Click to view subscription details"
+            >
+              <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
+              <span className="hidden sm:inline">
+                {license.plan === 'lifetime'
+                  ? 'Lifetime Pro'
+                  : `${license.planTitle?.split(' ')[0] || 'Pro'} (${license.daysLeft ?? 0}d)`}
+              </span>
+              <span className="sm:hidden">Pro</span>
+            </button>
+          )}
+
           {onOpenGpuModal && (
             <button
               onClick={onOpenGpuModal}
