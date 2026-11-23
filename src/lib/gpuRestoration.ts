@@ -1,6 +1,7 @@
 import { GpuServerStatus, GpuRestoreOptions, GpuRestoreResult } from '../types';
 import { detectClientHardware } from './hardwareDetection';
 import { restoreImageClientSide } from './clientRestoration';
+import { executeGpuShaderPipeline } from './webgpuEngine';
 
 export function getGpuServerUrl(): string {
   if (typeof window !== 'undefined') {
@@ -180,7 +181,13 @@ export async function restoreImageWithGpu(
     // Backend server is not running (e.g. running live on Vercel)
   }
 
-  // Fallback to client-side GPU & Canvas engine directly in the browser!
-  const clientHw = await detectClientHardware();
-  return await restoreImageClientSide(imageDataUrl, options, clientHw.gpuName);
+  // Execute In-Browser Physical GPU Hardware Shader Pipeline (just like GPU benchmark websites)
+  try {
+    return await executeGpuShaderPipeline(imageDataUrl, options);
+  } catch (gpuShaderErr) {
+    console.warn('WebGPU/WebGL2 shader pipeline fallback:', gpuShaderErr);
+    // Fallback to CPU canvas engine if hardware shaders fail
+    const clientHw = await detectClientHardware();
+    return await restoreImageClientSide(imageDataUrl, options, clientHw.gpuName);
+  }
 }

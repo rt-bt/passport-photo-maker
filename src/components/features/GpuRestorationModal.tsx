@@ -171,7 +171,7 @@ export const GpuRestorationModal: React.FC<GpuRestorationModalProps> = ({
       console.error(err);
       setError(
         err.message ||
-          'Failed to connect to GPU server. Please ensure the local server is running.'
+          'Failed to execute GPU shader pipeline. Please ensure Graphics Hardware Acceleration is enabled in your browser.'
       );
     }
   };

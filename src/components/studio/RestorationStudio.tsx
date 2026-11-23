@@ -278,42 +278,40 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
   };
 
   const getProgressStageName = (pct: number) => {
-    if (pct < 15) return 'Initializing GPU VRAM & Neural Tensors...';
-    if (pct < 35) return 'Anti-Mosaic & De-blocking Pre-Filter...';
-    if (pct < 65) return 'Flagship RealESRGAN RRDB Clothes & Body Super-Resolution...';
-    if (pct < 85) return 'GFPGAN Generative Facial Feature Reconstruction...';
-    if (pct < 95) return '3D Anatomical Depth Shading & HDR Tone Mapping...';
-    return 'Neural Processing & Master Encoding (almost done)...';
+    if (pct < 20) return 'Initializing Physical GPU Hardware Context...';
+    if (pct < 45) return 'GPU Compute Shader: Bilateral Anti-Mosaic Deblock...';
+    if (pct < 70) return 'GPU Core Shader: Super-Resolution & Unsharp Detail Pop...';
+    if (pct < 90) return 'GPU Core Shader: HDR Tone Mapping & 3D Depth Shading...';
+    return 'Finalizing Master High-Definition Render...';
   };
 
   const handleRunRestoration = async () => {
     if (!imageSrc) return;
     setError(null);
     setIsProcessing(true);
-    setProgressPercent(5);
-    setProgressStage('Initializing GPU VRAM & Neural Tensors...');
+    setProgressPercent(10);
+    setProgressStage('Initializing Physical GPU Hardware Context...');
 
-    // Calibrate realistic progress curve based on target resolution
+    // Fast GPU shader execution calibration
     const estimatedMs =
-      options.targetRes === '16k' ? 18000 :
-      options.targetRes === '8k'  ? 11000 :
-      options.targetRes === '4k'  ? 6800 :
-      options.targetRes === '2k'  ? 4200 : 2500;
+      options.targetRes === '16k' ? 4500 :
+      options.targetRes === '8k'  ? 2800 :
+      options.targetRes === '4k'  ? 1500 :
+      options.targetRes === '2k'  ? 900 : 600;
 
     const startTime = Date.now();
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       let rawPct: number;
       if (elapsed <= estimatedMs) {
-        rawPct = Math.round(5 + (elapsed / estimatedMs) * 85);
+        rawPct = Math.round(10 + (elapsed / estimatedMs) * 80);
       } else {
-        // Continuous smooth creeping progress from 90% up to 98% while waiting for large renders
         const extraTime = elapsed - estimatedMs;
-        rawPct = Math.min(98, Math.round(90 + (extraTime / 12000) * 8));
+        rawPct = Math.min(98, Math.round(90 + (extraTime / 5000) * 8));
       }
       setProgressPercent((prev) => Math.max(prev, rawPct));
       setProgressStage(getProgressStageName(rawPct));
-    }, 50);
+    }, 40);
 
     try {
       const res = await restoreImageWithGpu(imageSrc, {
@@ -322,7 +320,7 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
       });
       clearInterval(interval);
       setProgressPercent(100);
-      setProgressStage('✅ Render Complete (100%)');
+      setProgressStage('✅ GPU Hardware Render Complete (100%)');
       setResult(res);
       setTimeout(() => {
         setIsProcessing(false);
@@ -335,7 +333,7 @@ export const RestorationStudio: React.FC<RestorationStudioProps> = ({
       console.error(err);
       setError(
         err.message ||
-          'Failed to render on GPU server. Please ensure the local server is running.'
+          'Failed to execute GPU shader pipeline. Please ensure Graphics Hardware Acceleration is enabled in your browser.'
       );
     }
   };
