@@ -8,6 +8,7 @@ import {
   Sparkles,
   ShieldCheck,
   Share2,
+  Palette,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Button } from '../common/Button';
@@ -24,6 +25,7 @@ interface Step7DownloadProps {
   onRestart: () => void;
   onGoToSheet: () => void;
   onOpenCompliance: () => void;
+  onOpenDesignStudio?: () => void;
 }
 
 export const Step7Download: React.FC<Step7DownloadProps> = ({
@@ -34,6 +36,7 @@ export const Step7Download: React.FC<Step7DownloadProps> = ({
   onRestart,
   onGoToSheet,
   onOpenCompliance,
+  onOpenDesignStudio,
 }) => {
   const { t } = useI18n();
 
@@ -139,6 +142,18 @@ export const Step7Download: React.FC<Step7DownloadProps> = ({
         >
           Generate Print Sheet (A4 / 4×6 inch)
         </Button>
+
+        {onOpenDesignStudio && (
+          <Button
+            variant="outline"
+            size="md"
+            className="w-full border-amber-500 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+            icon={<Palette className="w-4 h-4 text-amber-600" />}
+            onClick={onOpenDesignStudio}
+          >
+            Use in Indian Design Studio (ID Card, Posters & Wedding)
+          </Button>
+        )}
       </div>
 
       {/* Restart */}

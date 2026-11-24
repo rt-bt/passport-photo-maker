@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, ShieldCheck, Sparkles, Cpu, Zap, Layers, Crown } from 'lucide-react';
+import { Camera, ShieldCheck, Sparkles, Cpu, Zap, Layers, Crown, Palette } from 'lucide-react';
 import { useI18n } from '../../i18n';
 import { ThemeLanguageToggle } from './ThemeLanguageToggle';
 import { checkGpuServerHealth } from '../../lib/gpuRestoration';
@@ -88,8 +88,20 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-              <span className="hidden sm:inline">AI Restoration Studio (2K–16K)</span>
+              <span className="hidden sm:inline">AI Restoration</span>
               <span className="sm:hidden">AI Studio</span>
+            </button>
+            <button
+              onClick={() => onChangeMode('design-studio')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeMode === 'design-studio'
+                  ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Palette className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              <span className="hidden sm:inline">Indian Design Studio</span>
+              <span className="sm:hidden">Design Studio</span>
             </button>
           </div>
         )}

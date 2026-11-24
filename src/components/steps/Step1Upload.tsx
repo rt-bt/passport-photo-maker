@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Camera, Image as ImageIcon, Sparkles, AlertCircle, Zap, Cpu } from 'lucide-react';
+import { Upload, Camera, Image as ImageIcon, Sparkles, AlertCircle, Zap, Cpu, Palette } from 'lucide-react';
 import { Button } from '../common/Button';
 import { useI18n } from '../../i18n';
 import { processUploadedFile } from '../../lib/exif';
@@ -9,12 +9,14 @@ interface Step1UploadProps {
   onImageLoaded: (dataUrl: string, originalSize: number) => void;
   onOpenGpuRestore?: (dataUrl: string) => void;
   onSelectStudio?: () => void;
+  onSelectDesignStudio?: () => void;
 }
 
 export const Step1Upload: React.FC<Step1UploadProps> = ({
   onImageLoaded,
   onOpenGpuRestore,
   onSelectStudio,
+  onSelectDesignStudio,
 }) => {
   const { t } = useI18n();
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -207,7 +209,7 @@ export const Step1Upload: React.FC<Step1UploadProps> = ({
       </div>
 
       {/* Feature Selection Cards on Home Page */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Tool 1: Passport Size Photo Maker */}
         <div className="relative p-5 rounded-3xl bg-blue-50/60 dark:bg-blue-950/30 border-2 border-blue-500 shadow-md flex flex-col justify-between">
           <div className="space-y-3">
@@ -259,6 +261,35 @@ export const Step1Upload: React.FC<Step1UploadProps> = ({
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
             <span>Launch Dedicated Studio &rarr;</span>
+          </div>
+        </button>
+
+        {/* Tool 3: Indian Design Studio (SaaS Platform) */}
+        <button
+          type="button"
+          onClick={onSelectDesignStudio}
+          className="group relative p-5 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-xl hover:shadow-amber-500/10 transition-all text-left flex flex-col justify-between cursor-pointer"
+        >
+          <div className="space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-orange-600 to-rose-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-105 transition-transform">
+              <Palette className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                  Indian Design Studio
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                  Canva SaaS
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                Indian wedding invitations, CR80 school & employee ID cards, festival flex posters, visiting cards, and motion video cards.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+            <span>Open Design Studio &rarr;</span>
           </div>
         </button>
       </div>

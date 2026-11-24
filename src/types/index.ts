@@ -113,7 +113,7 @@ export interface CropArea {
   height: number;
 }
 
-export type AppMode = 'passport' | 'restoration';
+export type AppMode = 'passport' | 'restoration' | 'design-studio';
 
 export type ResolutionTier = 'original' | '2k' | '4k' | '8k' | '16k';
 export type ExportFormat = 'jpeg' | 'png' | 'webp';

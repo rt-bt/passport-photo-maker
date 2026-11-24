@@ -16,6 +16,7 @@ import { BatchProcessorModal } from './components/features/BatchProcessorModal';
 import { GpuRestorationModal } from './components/features/GpuRestorationModal';
 import { GpuHardwareModal } from './components/features/GpuHardwareModal';
 import { RestorationStudio } from './components/studio/RestorationStudio';
+import { IndianDesignStudioHub } from './components/studio/IndianDesignStudioHub';
 import { PASSPORT_PRESETS } from './lib/presets';
 import { PassportPreset, AppMode, GpuServerStatus } from './types';
 import { CompressResult } from './lib/compression';
@@ -150,8 +151,15 @@ export const MainApp: React.FC = () => {
         onOpenLicense={() => setIsLicenseModalOpen(true)}
       />
 
-      {/* When in dedicated AI Restoration Studio mode */}
-      {activeMode === 'restoration' ? (
+      {/* When in dedicated Indian Design Studio mode */}
+      {activeMode === 'design-studio' ? (
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <IndianDesignStudioHub
+            currentPhotoUrl={finalPhotoUrl || bgProcessedImage || croppedImage || rawImage}
+            onBackToPassport={() => setActiveMode('passport')}
+          />
+        </main>
+      ) : activeMode === 'restoration' ? (
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <RestorationStudio
             onSendToPassportMaker={(restoredImage) => {
@@ -182,6 +190,7 @@ export const MainApp: React.FC = () => {
                 }}
                 onOpenGpuRestore={(img) => openGpuRestore(img)}
                 onSelectStudio={() => setActiveMode('restoration')}
+                onSelectDesignStudio={() => setActiveMode('design-studio')}
               />
             )}
 
@@ -264,6 +273,7 @@ export const MainApp: React.FC = () => {
             onRestart={handleRestart}
             onGoToSheet={() => setCurrentStep(6)}
             onOpenCompliance={() => setIsComplianceOpen(true)}
+            onOpenDesignStudio={() => setActiveMode('design-studio')}
           />
         )}
           </main>
