@@ -39,7 +39,9 @@ import {
   Check,
   ChevronLeft,
   Grid,
-  FileDown
+  FileDown,
+  X,
+  Sliders
 } from 'lucide-react';
 import { DesignProject, DesignTemplate } from '@/types';
 import { SAMPLE_TEMPLATES, PRESET_DIMENSIONS, INDIAN_ELEMENTS } from '@/lib/templatesData';
@@ -74,6 +76,8 @@ export default function CanvaEditor({
   const [activeTab, setActiveTab] = useState<
     'templates' | 'elements' | 'text' | 'uploads' | 'backgrounds' | 'indian' | 'qrcode'
   >('templates');
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(true);
+  const [isMobilePropertiesOpen, setIsMobilePropertiesOpen] = useState<boolean>(false);
 
   // History for Undo / Redo
   const historyRef = useRef<string[]>([]);
@@ -843,22 +847,41 @@ export default function CanvaEditor({
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => {
+                  if (activeTab === tab.id && isDrawerOpen) {
+                    setIsDrawerOpen(false);
+                  } else {
+                    setActiveTab(tab.id as any);
+                    setIsDrawerOpen(true);
+                  }
+                }}
                 className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-all ${
-                  isSelected
+                  isSelected && isDrawerOpen
                     ? 'bg-amber-50 text-amber-700 font-bold shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isSelected ? 'text-amber-600' : ''}`} />
+                <Icon className={`w-4 h-4 ${isSelected && isDrawerOpen ? 'text-amber-600' : ''}`} />
                 <span>{tab.label}</span>
               </button>
             );
           })}
         </aside>
 
-        {/* LEFT SECONDARY DRAWER PANEL */}
-        <aside className="w-72 bg-white border-r border-slate-200 overflow-y-auto shrink-0 z-10 p-4">
+        {/* LEFT SECONDARY DRAWER PANEL - Responsive Overlay on Mobile, Inline on Desktop */}
+        {isDrawerOpen && (
+          <aside className="absolute md:relative inset-y-0 left-16 z-30 w-72 sm:w-80 md:w-72 bg-white border-r border-slate-200 overflow-y-auto shrink-0 p-4 shadow-xl md:shadow-none animate-in slide-in-from-left duration-200">
+            <div className="flex md:hidden items-center justify-between pb-2 mb-2 border-b border-slate-100">
+              <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">
+                {activeTab}
+              </span>
+              <button
+                onClick={() => setIsDrawerOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           {/* TAB 1: TEMPLATES */}
           {activeTab === 'templates' && (
             <div className="space-y-4">
@@ -1103,11 +1126,12 @@ export default function CanvaEditor({
             </div>
           )}
         </aside>
+        )}
 
         {/* 3. CENTER CANVAS WORK AREA */}
         <main
           ref={containerRef}
-          className={`flex-1 overflow-auto flex items-center justify-center p-8 canvas-checkerboard ${
+          className={`flex-1 overflow-auto flex items-center justify-center p-4 sm:p-8 canvas-checkerboard relative ${
             showGrid ? 'print-grid' : ''
           }`}
         >
@@ -1120,41 +1144,69 @@ export default function CanvaEditor({
           >
             <canvas ref={canvasRef} />
           </div>
+
+          {/* Floating Mobile Properties Button when object selected */}
+          {selectedObject && (
+            <div className="md:hidden fixed bottom-4 right-4 z-30">
+              <button
+                onClick={() => setIsMobilePropertiesOpen(true)}
+                className="px-4 py-2.5 bg-slate-900 text-white rounded-full shadow-2xl flex items-center gap-2 text-xs font-bold border border-slate-700 animate-bounce"
+              >
+                <Sliders className="w-4 h-4 text-amber-400" />
+                <span>Edit Object Properties</span>
+              </button>
+            </div>
+          )}
         </main>
 
-        {/* 4. RIGHT SIDEBAR PROPERTIES INSPECTOR */}
-        <aside className="w-64 bg-white border-l border-slate-200 overflow-y-auto shrink-0 z-10 p-4 space-y-5">
+        {/* 4. RIGHT SIDEBAR PROPERTIES INSPECTOR (Responsive slide-over on mobile) */}
+        <aside
+          className={`${
+            isMobilePropertiesOpen
+              ? 'fixed inset-y-0 right-0 z-40 w-72 sm:w-80 shadow-2xl bg-white animate-in slide-in-from-right duration-200'
+              : 'hidden md:block w-64'
+          } bg-white border-l border-slate-200 overflow-y-auto shrink-0 p-4 space-y-5`}
+        >
           <div className="flex items-center justify-between border-b border-slate-200 pb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
               {selectedObject ? `${selectedObject.type.toUpperCase()} Properties` : 'Canvas Settings'}
             </span>
-            {selectedObject && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={toggleLock}
-                  title={isLocked ? 'Unlock Element' : 'Lock Element'}
-                  className={`p-1 rounded-md transition-colors ${
-                    isLocked ? 'text-rose-600 bg-rose-50' : 'text-slate-500 hover:bg-slate-100'
-                  }`}
-                >
-                  {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-                </button>
-                <button
-                  onClick={duplicateObject}
-                  title="Duplicate (Copy)"
-                  className="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={deleteSelected}
-                  title="Delete"
-                  className="p-1 rounded-md text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
+            <div className="flex items-center gap-1">
+              {/* Close button for mobile properties sheet */}
+              <button
+                onClick={() => setIsMobilePropertiesOpen(false)}
+                className="md:hidden p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              {selectedObject && (
+                <>
+                  <button
+                    onClick={toggleLock}
+                    title={isLocked ? 'Unlock Element' : 'Lock Element'}
+                    className={`p-1 rounded-md transition-colors ${
+                      isLocked ? 'text-rose-600 bg-rose-50' : 'text-slate-500 hover:bg-slate-100'
+                    }`}
+                  >
+                    {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
+                    onClick={duplicateObject}
+                    title="Duplicate (Copy)"
+                    className="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={deleteSelected}
+                    title="Delete"
+                    className="p-1 rounded-md text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           {selectedObject ? (
@@ -1175,11 +1227,15 @@ export default function CanvaEditor({
                       className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-md focus:outline-none"
                     >
                       <option value="Poppins">Poppins (Clean Modern)</option>
-                      <option value="Cinzel">Cinzel (Royal Roman)</option>
                       <option value="Rozha One">Rozha One (Traditional Hindi)</option>
-                      <option value="Noto Sans Devanagari">Noto Sans Devanagari (Hindi)</option>
+                      <option value="Cinzel">Cinzel (Royal Roman)</option>
+                      <option value="Great Vibes">Great Vibes (Script / Calligraphy)</option>
                       <option value="Yatra One">Yatra One (Festive Devanagari)</option>
-                      <option value="Great Vibes">Great Vibes (Script/Calligraphy)</option>
+                      <option value="Playfair Display">Playfair Display (Luxury Serif)</option>
+                      <option value="Kalam">Kalam (Artistic Hand-Lettered)</option>
+                      <option value="Marcellus">Marcellus (Indian Royalty)</option>
+                      <option value="Tiro Devanagari Hindi">Tiro Devanagari (Classical Sanskrit / Hindi)</option>
+                      <option value="Noto Sans Devanagari">Noto Sans Devanagari (Hindi)</option>
                     </select>
                   </div>
 
