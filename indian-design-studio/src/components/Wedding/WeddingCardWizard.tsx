@@ -39,6 +39,8 @@ import { IndicTextInput } from './IndicTextInput';
 import { VirtualHindiKeyboard } from './VirtualHindiKeyboard';
 import { WeddingCardMotif } from './WeddingCardMotifs';
 import { WEDDING_PHRASE_BANK, transliterateText } from '@/lib/transliterate';
+import { CalligraphyLibraryModal } from './CalligraphyLibraryModal';
+import { CalligraphyItem } from '@/lib/weddingCalligraphyData';
 
 // Available Fonts for Indian Weddings
 export const FONT_OPTIONS = [
@@ -73,6 +75,7 @@ export default function WeddingCardWizard() {
   const [showKeyboard, setShowKeyboard] = useState<boolean>(false);
   const [showPhrases, setShowPhrases] = useState<boolean>(false);
   const [activePhraseCat, setActivePhraseCat] = useState<string>('All');
+  const [isCalligraphyModalOpen, setIsCalligraphyModalOpen] = useState<boolean>(false);
 
   // Mobile layout switcher: 'form' | 'preview'
   const [mobileTab, setMobileTab] = useState<'form' | 'preview'>('form');
@@ -203,6 +206,14 @@ export default function WeddingCardWizard() {
   // Insert Phrase from Phrase Bank
   const handleInsertPhrase = (text: string) => {
     handleChange('shlokaOrBismillah', text);
+  };
+
+  // Select Calligraphy from 160+ Master Library
+  const handleSelectCalligraphy = (item: CalligraphyItem) => {
+    handleChange('shlokaOrBismillah', item.text);
+    if (item.fontFamily) {
+      setHeaderFont(item.fontFamily);
+    }
   };
 
   // Open in Full Canvas Studio
@@ -745,38 +756,70 @@ export default function WeddingCardWizard() {
               }}
             />
 
-            {/* Quick Phrases & Blessings Bank Bar */}
-            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
-                  <BookOpen className="w-3.5 h-3.5 text-amber-700" />
-                  <span>Quick Hindi Blessings & Shlokas (1-Click Insert)</span>
+            {/* 160+ WEDDING CALLIGRAPHY MASTER STATION */}
+            <div className="bg-linear-to-r from-amber-50 via-orange-50 to-amber-100/70 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/80 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center shadow-xs">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-extrabold text-amber-950">
+                      भारतीय शादी कैलीग्राफी संग्रह (160+ Master Calligraphy)
+                    </h4>
+                    <p className="text-[11px] text-amber-800">
+                      शुभ विवाह, वैदिक श्लोक, बाल मनुहार, रस्में, राजस्थानी, गुजराती, पंजाबी, निकाह व स्वाश
+                    </p>
+                  </div>
                 </div>
+
                 <button
                   type="button"
-                  onClick={() => setShowPhrases(!showPhrases)}
-                  className="text-[11px] font-bold text-amber-700 flex items-center gap-0.5 hover:underline"
+                  onClick={() => setIsCalligraphyModalOpen(true)}
+                  className="px-4 py-2 bg-linear-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 shrink-0"
                 >
-                  {showPhrases ? 'Hide Phrases' : 'Show All Phrases'}
-                  {showPhrases ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>लाइब्रेरी खोलें (160+) &rarr;</span>
                 </button>
               </div>
 
-              {/* Phrase Pills */}
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {WEDDING_PHRASE_BANK.slice(0, showPhrases ? undefined : 6).map((phrase, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleInsertPhrase(phrase.text)}
-                    className="text-[11px] font-medium bg-white hover:bg-amber-100 text-amber-950 border border-amber-200 px-2.5 py-1 rounded-lg transition shadow-2xs text-left"
-                    title={phrase.text}
-                  >
-                    + {phrase.title}
-                  </button>
-                ))}
+              {/* Quick Category Shortcut Pills */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">
+                  त्वरित श्रेणियां (Quick Categories):
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: '🪷 शुभ विवाह (25)', text: '॥ शुभ विवाह ॥' },
+                    { label: '🕉️ श्री गणेश (20)', text: '॥ श्री गणेशाय नमः ॥' },
+                    { label: '📜 वैदिक श्लोक (20)', text: 'मंगलम् भगवान विष्णुः मंगलम् गरुडध्वजः। मंगलम् पुण्डरीकाक्षः मंगलाय तनो हरिः॥' },
+                    { label: '💌 बाल मनुहार (15)', text: 'चाचा-चाची की शादी में, रसगुल्ले की मिठास में। जलूल-जलूल पधारना हमारी आस में! - समस्त नन्हे-मुन्ने' },
+                    { label: '👑 राजस्थानी (12)', text: '॥ खम्मा घणी - पधारो म्हारे देस ॥' },
+                    { label: '🦚 गुजराती કંકોતરી (12)', text: '॥ શ્રી ગણેશાય નમઃ ॥ કંકુછાંટણાં' },
+                    { label: '☬ ਪੰਜਾਬੀ ਅਨੰਦ ਕਾਰਜ (12)', text: 'ੴ ਸਤਿਗੁਰ ਪ੍ਰਸਾਦਿ ॥ ਲਾਵਾਂ ਫੇਰੇ ॥' },
+                    { label: '🕌 نکاح مبارک (12)', text: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ (Nikaah Ceremony)' },
+                    { label: '⚜️ अलंकृत स्वाश (20)', text: '꧁༺ शुभ विवाह ༻꧂' },
+                  ].map((chip, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleInsertPhrase(chip.text)}
+                      className="text-[11px] font-semibold bg-white hover:bg-amber-100 text-amber-950 border border-amber-300/80 px-2.5 py-1 rounded-lg transition shadow-2xs text-left"
+                      title={chip.text}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+
+            {/* Calligraphy Library Modal Component */}
+            <CalligraphyLibraryModal
+              isOpen={isCalligraphyModalOpen}
+              onClose={() => setIsCalligraphyModalOpen(false)}
+              onSelectCalligraphy={handleSelectCalligraphy}
+            />
 
             {/* Auspicious Shloka / Header */}
             <IndicTextInput

@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 import { DesignProject, DesignTemplate } from '@/types';
 import { SAMPLE_TEMPLATES, PRESET_DIMENSIONS, INDIAN_ELEMENTS } from '@/lib/templatesData';
+import { WEDDING_CALLIGRAPHY_COLLECTION, CalligraphyItem } from '@/lib/weddingCalligraphyData';
 import { saveProject, getProjectById, getUploadedImages, addUploadedImage } from '@/lib/storage';
 import { exportCanvasAsImage, exportCanvasAsPDF, exportCanvasAsSVG } from '@/lib/exportUtils';
 import QRCode from 'qrcode';
@@ -107,6 +108,8 @@ export default function CanvaEditor({
   const [showGrid, setShowGrid] = useState<boolean>(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [qrText, setQrText] = useState<string>('https://maps.google.com');
+  const [calligraphySearch, setCalligraphySearch] = useState<string>('');
+  const [calligraphyCategory, setCalligraphyCategory] = useState<string>('all');
 
   // Save current canvas state to history
   const pushHistory = useCallback(() => {
@@ -439,6 +442,40 @@ export default function CanvaEditor({
       canvas.renderAll();
       pushHistory();
     });
+  };
+
+  // Add Wedding Calligraphy
+  const addCalligraphy = async (item: CalligraphyItem) => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+
+    if (item.svg) {
+      await addIndianElement(item.svg);
+      return;
+    }
+
+    const fabricModule = await import('fabric');
+    const fabric = fabricModule.fabric || (window as any).fabric;
+    const center = canvas.getCenter();
+
+    const isLongText = item.text.length > 30;
+    const textObj = new fabric.IText(item.text, {
+      left: center.left,
+      top: center.top,
+      originX: 'center',
+      originY: 'center',
+      fontSize: isLongText ? 28 : 46,
+      fill: fillColor === '#ffffff' ? '#d97706' : fillColor,
+      fontFamily: item.fontFamily || 'Rozha One',
+      fontWeight: 'bold',
+      textAlign: 'center',
+      lineHeight: 1.4,
+    });
+
+    canvas.add(textObj);
+    canvas.setActiveObject(textObj);
+    canvas.renderAll();
+    pushHistory();
   };
 
   // Add QR Code
@@ -1000,29 +1037,123 @@ export default function CanvaEditor({
             </div>
           )}
 
-          {/* TAB 4: INDIAN DECORATIVE ICONS */}
+          {/* TAB 4: INDIAN WEDDING CALLIGRAPHY & CULTURAL ELEMENTS */}
           {activeTab === 'indian' && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Indian Cultural Elements
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {INDIAN_ELEMENTS.map((elem) => (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Wedding Calligraphy (160+)
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    Click to add artistic calligraphy onto design
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                  160+ Items
+                </span>
+              </div>
+
+              {/* Calligraphy Search */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                <input
+                  type="text"
+                  value={calligraphySearch}
+                  onChange={(e) => setCalligraphySearch(e.target.value)}
+                  placeholder="Search calligraphy (e.g. vivah, ganesh, shloka)..."
+                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Category Pills */}
+              <div className="flex gap-1 overflow-x-auto pb-1 text-[11px] font-medium scrollbar-none">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'vivah', label: 'शुभ विवाह' },
+                  { id: 'ganesh', label: 'श्री गणेश' },
+                  { id: 'shloka', label: 'वैदिक श्लोक' },
+                  { id: 'balmanuhar', label: 'बाल मनुहार' },
+                  { id: 'functions', label: 'रस्में' },
+                  { id: 'rajasthani', label: 'राजस्थानी' },
+                  { id: 'gujarati', label: 'ગુજરાતી' },
+                  { id: 'punjabi', label: 'ਪੰਜਾਬੀ' },
+                  { id: 'islamic', label: 'نکاح' },
+                  { id: 'swashes', label: 'Icons & Swashes' },
+                ].map((c) => (
                   <button
-                    key={elem.id}
-                    onClick={() => addIndianElement(elem.svg)}
-                    className="p-3 border border-slate-200 hover:border-amber-500 rounded-xl flex flex-col items-center gap-2 hover:bg-amber-50/40 transition-all text-center"
-                    title={elem.name}
+                    key={c.id}
+                    onClick={() => setCalligraphyCategory(c.id)}
+                    className={`px-2.5 py-1 rounded-md whitespace-nowrap transition-colors ${
+                      calligraphyCategory === c.id
+                        ? 'bg-amber-600 text-white font-bold'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
                   >
-                    <div
-                      className="w-10 h-10 flex items-center justify-center"
-                      dangerouslySetInnerHTML={{ __html: elem.svg }}
-                    />
-                    <span className="text-[10px] font-medium text-slate-700 leading-tight">
-                      {elem.name}
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Calligraphy Items List */}
+              <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+                {WEDDING_CALLIGRAPHY_COLLECTION.filter((item) => {
+                  const matchesCat =
+                    calligraphyCategory === 'all' || item.category === calligraphyCategory;
+                  const matchesSearch =
+                    item.title.toLowerCase().includes(calligraphySearch.toLowerCase()) ||
+                    item.text.toLowerCase().includes(calligraphySearch.toLowerCase());
+                  return matchesCat && matchesSearch;
+                }).map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => addCalligraphy(item)}
+                    className="w-full text-left p-2.5 border border-slate-200 hover:border-amber-500 bg-white hover:bg-amber-50/50 rounded-xl transition-all shadow-2xs group flex flex-col gap-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                        {item.categoryLabel.split(' ')[0]}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-400 group-hover:text-amber-700">
+                        + Add to Canvas
+                      </span>
+                    </div>
+                    <p
+                      className="text-sm font-bold text-slate-900 group-hover:text-amber-900 transition leading-snug"
+                      style={{ fontFamily: item.fontFamily || 'Rozha One' }}
+                    >
+                      {item.text}
+                    </p>
+                    <span className="text-[10px] text-slate-500 truncate">
+                      {item.title}
                     </span>
                   </button>
                 ))}
+              </div>
+
+              {/* Indian Cultural Icons Grid */}
+              <div className="pt-2 border-t border-slate-200">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                  Sacred Motifs & Borders
+                </h4>
+                <div className="grid grid-cols-3 gap-2">
+                  {INDIAN_ELEMENTS.map((elem) => (
+                    <button
+                      key={elem.id}
+                      onClick={() => addIndianElement(elem.svg)}
+                      className="p-2 border border-slate-200 hover:border-amber-500 rounded-xl flex flex-col items-center gap-1 hover:bg-amber-50/40 transition-all text-center"
+                      title={elem.name}
+                    >
+                      <div
+                        className="w-8 h-8 flex items-center justify-center"
+                        dangerouslySetInnerHTML={{ __html: elem.svg }}
+                      />
+                      <span className="text-[9px] font-medium text-slate-700 truncate w-full">
+                        {elem.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
