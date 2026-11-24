@@ -19,147 +19,26 @@ import {
   Sliders,
   Eye,
   Smartphone,
-  Monitor
+  Monitor,
+  Search,
+  Sparkles,
+  Keyboard,
+  ChevronDown,
+  ChevronUp,
+  BookOpen
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { WeddingFormData } from '@/types';
 import { saveProject } from '@/lib/storage';
 import jsPDF from 'jspdf';
-
-// 9 Rich Indian Wedding Card Themes
-export interface CardTheme {
-  id: string;
-  name: string;
-  category: string;
-  bgClass: string;
-  bgColorHex: string;
-  borderColorHex: string;
-  borderStyle: string;
-  textColorHex: string;
-  goldColorHex: string;
-  accentBgHex: string;
-  description: string;
-}
-
-export const CARD_THEMES: CardTheme[] = [
-  {
-    id: 'royal-crimson',
-    name: 'Royal Crimson Gold',
-    category: 'Hindu / Royal',
-    bgClass: 'bg-rose-950',
-    bgColorHex: '#580816',
-    borderColorHex: '#d4af37',
-    borderStyle: 'border-amber-400',
-    textColorHex: '#ffffff',
-    goldColorHex: '#fde047',
-    accentBgHex: '#3b040e',
-    description: 'Deep royal crimson with rich gold foil borders and corners.',
-  },
-  {
-    id: 'rajasthani-heritage',
-    name: 'Rajasthani Jharokha',
-    category: 'Heritage',
-    bgClass: 'bg-red-950',
-    bgColorHex: '#450a0a',
-    borderColorHex: '#eab308',
-    borderStyle: 'border-yellow-500',
-    textColorHex: '#fffdf5',
-    goldColorHex: '#facc15',
-    accentBgHex: '#2b0505',
-    description: 'Regal palace maroon with ornamental jharokha arch details.',
-  },
-  {
-    id: 'ivory-silk',
-    name: 'Ivory Silk & Classic Gold',
-    category: 'Minimalist Luxury',
-    bgClass: 'bg-amber-50',
-    bgColorHex: '#fffdf5',
-    borderColorHex: '#b45309',
-    borderStyle: 'border-amber-600',
-    textColorHex: '#1e293b',
-    goldColorHex: '#b45309',
-    accentBgHex: '#fef3c7',
-    description: 'Sophisticated off-white ivory silk with antique gold accents.',
-  },
-  {
-    id: 'haldi-marigold',
-    name: 'Haldi Sunny Marigold',
-    category: 'Haldi Function',
-    bgClass: 'bg-amber-100',
-    bgColorHex: '#fef08a',
-    borderColorHex: '#ca8a04',
-    borderStyle: 'border-yellow-600',
-    textColorHex: '#451a03',
-    goldColorHex: '#9a3412',
-    accentBgHex: '#fde047',
-    description: 'Auspicious sunny marigold yellow with lively festive vibe.',
-  },
-  {
-    id: 'mehndi-emerald',
-    name: 'Mehndi Botanical Emerald',
-    category: 'Mehndi & Sangeet',
-    bgClass: 'bg-emerald-950',
-    bgColorHex: '#064e3b',
-    borderColorHex: '#d4af37',
-    borderStyle: 'border-emerald-400',
-    textColorHex: '#ffffff',
-    goldColorHex: '#fde047',
-    accentBgHex: '#022c22',
-    description: 'Lush dark emerald with golden henna vine borders.',
-  },
-  {
-    id: 'peacock-teal',
-    name: 'Peacock Teal Velvet',
-    category: 'Modern Royal',
-    bgClass: 'bg-cyan-950',
-    bgColorHex: '#083344',
-    borderColorHex: '#38bdf8',
-    borderStyle: 'border-cyan-400',
-    textColorHex: '#ffffff',
-    goldColorHex: '#fde047',
-    accentBgHex: '#041f2a',
-    description: 'Majestic peacock feather cyan-navy with glittering gold accents.',
-  },
-  {
-    id: 'muslim-nikaah',
-    name: 'Muslim Nikaah Royal Arch',
-    category: 'Muslim Nikaah',
-    bgClass: 'bg-emerald-950',
-    bgColorHex: '#064e3b',
-    borderColorHex: '#facc15',
-    borderStyle: 'border-yellow-400',
-    textColorHex: '#ffffff',
-    goldColorHex: '#fde047',
-    accentBgHex: '#043427',
-    description: 'Sacred deep green with Bismillah header and arch frame.',
-  },
-  {
-    id: 'sikh-anand-karaj',
-    name: 'Sikh Anand Karaj Saffron',
-    category: 'Sikh Wedding',
-    bgClass: 'bg-orange-950',
-    bgColorHex: '#431407',
-    borderColorHex: '#fb923c',
-    borderStyle: 'border-orange-500',
-    textColorHex: '#ffffff',
-    goldColorHex: '#fed7aa',
-    accentBgHex: '#270b04',
-    description: 'Warm auspicious saffron-copper with Ek Onkar blessings.',
-  },
-  {
-    id: 'sunset-blush',
-    name: 'Rose Gold & Sunset Blush',
-    category: 'Contemporary Chic',
-    bgClass: 'bg-pink-950',
-    bgColorHex: '#500724',
-    borderColorHex: '#f43f5e',
-    borderStyle: 'border-rose-400',
-    textColorHex: '#ffffff',
-    goldColorHex: '#fbcfe8',
-    accentBgHex: '#370417',
-    description: 'Trendy romantic blush pink with delicate rose-gold highlights.',
-  },
-];
+import {
+  WEDDING_THEMES_COLLECTION,
+  DetailedCardTheme
+} from './weddingThemesData';
+import { IndicTextInput } from './IndicTextInput';
+import { VirtualHindiKeyboard } from './VirtualHindiKeyboard';
+import { WeddingCardMotif } from './WeddingCardMotifs';
+import { WEDDING_PHRASE_BANK, transliterateText } from '@/lib/transliterate';
 
 // Available Fonts for Indian Weddings
 export const FONT_OPTIONS = [
@@ -178,12 +57,22 @@ export const FONT_OPTIONS = [
 export default function WeddingCardWizard() {
   const router = useRouter();
 
-  // Active theme & fonts state
-  const [selectedThemeId, setSelectedThemeId] = useState<string>('royal-crimson');
+  // Active theme & filter state
+  const [selectedThemeId, setSelectedThemeId] = useState<string>('hindu-royal-crimson');
+  const [cultureFilter, setCultureFilter] = useState<string>('All');
+  const [themeSearch, setThemeSearch] = useState<string>('');
+
+  // Fonts state
   const [coupleFont, setCoupleFont] = useState<string>('Rozha One');
   const [headerFont, setHeaderFont] = useState<string>('Rozha One');
   const [bodyFont, setBodyFont] = useState<string>('Noto Sans Devanagari');
   const [coupleFontSize, setCoupleFontSize] = useState<'normal' | 'large' | 'xl'>('large');
+
+  // Hindi & Indic Typing state
+  const [hindiTypingEnabled, setHindiTypingEnabled] = useState<boolean>(true);
+  const [showKeyboard, setShowKeyboard] = useState<boolean>(false);
+  const [showPhrases, setShowPhrases] = useState<boolean>(false);
+  const [activePhraseCat, setActivePhraseCat] = useState<string>('All');
 
   // Mobile layout switcher: 'form' | 'preview'
   const [mobileTab, setMobileTab] = useState<'form' | 'preview'>('form');
@@ -210,8 +99,20 @@ export default function WeddingCardWizard() {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
-  // Active theme object
-  const currentTheme = CARD_THEMES.find((t) => t.id === selectedThemeId) || CARD_THEMES[0];
+  // Active theme object from 100+ collection
+  const currentTheme =
+    WEDDING_THEMES_COLLECTION.find((t) => t.id === selectedThemeId) ||
+    WEDDING_THEMES_COLLECTION[0];
+
+  // Filter themes based on cultural tab and search query
+  const filteredThemes = WEDDING_THEMES_COLLECTION.filter((theme) => {
+    const matchesCulture = cultureFilter === 'All' || theme.cultureTag === cultureFilter;
+    const matchesSearch =
+      theme.name.toLowerCase().includes(themeSearch.toLowerCase()) ||
+      theme.culture.toLowerCase().includes(themeSearch.toLowerCase()) ||
+      theme.description.toLowerCase().includes(themeSearch.toLowerCase());
+    return matchesCulture && matchesSearch;
+  });
 
   // Generate QR Code for Maps URL
   useEffect(() => {
@@ -228,32 +129,36 @@ export default function WeddingCardWizard() {
   };
 
   // Switch Theme Preset
-  const handleSelectTheme = (theme: CardTheme) => {
+  const handleSelectTheme = (theme: DetailedCardTheme) => {
     setSelectedThemeId(theme.id);
-    if (theme.id === 'muslim-nikaah') {
-      handleChange('shlokaOrBismillah', 'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ (Nikaah Ceremony)');
+    handleChange('shlokaOrBismillah', theme.shlokaHeader);
+
+    if (theme.cultureTag === 'Muslim') {
       setCoupleFont('Great Vibes');
-    } else if (theme.id === 'sikh-anand-karaj') {
-      handleChange('shlokaOrBismillah', 'ੴ सतिगुरु प्रसादि (Anand Karaj)');
+      setHeaderFont('Cinzel');
+    } else if (theme.cultureTag === 'Punjabi') {
       setCoupleFont('Yatra One');
-    } else if (theme.id === 'haldi-marigold') {
-      handleChange('shlokaOrBismillah', '✨ शुभ हल्दी समारोह ✨');
+      setHeaderFont('Yatra One');
+    } else if (theme.cultureTag === 'Modern') {
+      setCoupleFont('Playfair Display');
+      setHeaderFont('Cinzel');
+    } else if (theme.cultureTag === 'South') {
+      setCoupleFont('Marcellus');
+      setHeaderFont('Tiro Devanagari Hindi');
+    } else if (theme.cultureTag === 'Bengali') {
       setCoupleFont('Rozha One');
-    } else if (theme.id === 'mehndi-emerald') {
-      handleChange('shlokaOrBismillah', '🌿 रंगीलो मेहंदी उत्सव 🌿');
-      setCoupleFont('Kalam');
-    } else if (theme.id === 'ivory-silk') {
-      setCoupleFont('Cinzel');
+      setHeaderFont('Rozha One');
     } else {
-      handleChange('shlokaOrBismillah', '॥ श्री गणेशाय नमः ॥');
       setCoupleFont('Rozha One');
+      setHeaderFont('Rozha One');
     }
   };
 
-  // Switch Language
+  // Switch Language Preset
   const handleLanguageToggle = (lang: 'Hindi' | 'English') => {
     setLanguage(lang);
     if (lang === 'English') {
+      setHindiTypingEnabled(false);
       setFormData((prev) => ({
         ...prev,
         language: 'English',
@@ -266,12 +171,15 @@ export default function WeddingCardWizard() {
         venueName: 'Haveli Heritage Palace & Lawns',
         venueAddress: 'Near Raja Park, Jaipur, Rajasthan',
         rsvpNames: 'Sharma & Verma Family',
-        shlokaOrBismillah: selectedThemeId === 'muslim-nikaah' ? 'Bismillah Calligraphy (Nikaah Ceremony)' : 'Cordially Invite You to the Wedding of',
+        shlokaOrBismillah: currentTheme.cultureTag === 'Muslim'
+          ? 'In the Name of Allah, the Most Beneficent'
+          : 'Cordially Invite You to the Wedding of',
       }));
       setCoupleFont('Cinzel');
       setHeaderFont('Cinzel');
       setBodyFont('Poppins');
     } else {
+      setHindiTypingEnabled(true);
       setFormData((prev) => ({
         ...prev,
         language: 'Hindi',
@@ -284,12 +192,17 @@ export default function WeddingCardWizard() {
         venueName: 'हवेली हेरिटेज पैलेस एवं लॉन्स',
         venueAddress: 'नियर राजापार्क चौराहा, जयपुर, राजस्थान',
         rsvpNames: 'समस्त शर्मा एवं वर्मा परिवार',
-        shlokaOrBismillah: selectedThemeId === 'muslim-nikaah' ? 'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ (निकाह मुबारक)' : '॥ श्री गणेशाय नमः ॥',
+        shlokaOrBismillah: currentTheme.shlokaHeader || '॥ श्री गणेशाय नमः ॥',
       }));
       setCoupleFont('Rozha One');
       setHeaderFont('Rozha One');
       setBodyFont('Noto Sans Devanagari');
     }
+  };
+
+  // Insert Phrase from Phrase Bank
+  const handleInsertPhrase = (text: string) => {
+    handleChange('shlokaOrBismillah', text);
   };
 
   // Open in Full Canvas Studio
@@ -355,15 +268,15 @@ export default function WeddingCardWizard() {
           left: 600,
           top: 610,
           originX: 'center',
-          fontSize: 34,
-          fill: '#f59e0b',
+          fontSize: 32,
+          fill: currentTheme.goldColorHex,
           fontFamily: 'Great Vibes',
         },
         {
           type: 'i-text',
           text: formData.brideName,
           left: 600,
-          top: 700,
+          top: 720,
           originX: 'center',
           fontSize: coupleFontSize === 'xl' ? 68 : coupleFontSize === 'large' ? 56 : 46,
           fill: currentTheme.textColorHex,
@@ -374,7 +287,7 @@ export default function WeddingCardWizard() {
           type: 'i-text',
           text: `(${formData.brideParents})`,
           left: 600,
-          top: 780,
+          top: 800,
           originX: 'center',
           fontSize: 24,
           fill: currentTheme.goldColorHex,
@@ -382,14 +295,16 @@ export default function WeddingCardWizard() {
         },
         {
           type: 'i-text',
-          text: `${formData.weddingDate} • ${formData.weddingTime}`,
+          text: `${formData.weddingDate}\n${formData.weddingTime}`,
           left: 600,
-          top: 960,
+          top: 980,
           originX: 'center',
-          fontSize: 32,
-          fill: currentTheme.textColorHex,
-          fontFamily: bodyFont,
+          textAlign: 'center',
+          fontSize: 28,
+          fill: currentTheme.goldColorHex,
+          fontFamily: headerFont,
           fontWeight: 'bold',
+          lineHeight: 1.4,
         },
         {
           type: 'i-text',
@@ -448,33 +363,46 @@ export default function WeddingCardWizard() {
         format: [140, 210],
       });
 
-      // Background
-      const isIvory = currentTheme.id === 'ivory-silk';
-      const isHaldi = currentTheme.id === 'haldi-marigold';
+      // Parse hex color to rgb
+      const hexToRgb = (hex: string) => {
+        const bigint = parseInt(hex.replace('#', ''), 16);
+        return {
+          r: (bigint >> 16) & 255,
+          g: (bigint >> 8) & 255,
+          b: bigint & 255,
+        };
+      };
 
-      if (isIvory) doc.setFillColor(255, 253, 245);
-      else if (isHaldi) doc.setFillColor(254, 240, 138);
-      else doc.setFillColor(88, 8, 22);
+      const bgRgb = hexToRgb(currentTheme.bgColorHex);
+      const borderRgb = hexToRgb(currentTheme.borderColorHex);
+      const goldRgb = hexToRgb(currentTheme.goldColorHex);
+      const textRgb = hexToRgb(currentTheme.textColorHex);
 
+      doc.setFillColor(bgRgb.r, bgRgb.g, bgRgb.b);
       doc.rect(0, 0, 140, 210, 'F');
 
       // Border
-      doc.setDrawColor(212, 175, 55);
+      doc.setDrawColor(borderRgb.r, borderRgb.g, borderRgb.b);
       doc.setLineWidth(1.5);
       doc.rect(6, 6, 128, 198);
 
+      // Inner dashed border
+      doc.setDrawColor(goldRgb.r, goldRgb.g, goldRgb.b);
+      doc.setLineWidth(0.5);
+      doc.rect(9, 9, 122, 192);
+
       // Header
-      doc.setTextColor(isIvory ? 180 : 253, isIvory ? 83 : 224, isIvory ? 9 : 71);
+      doc.setTextColor(goldRgb.r, goldRgb.g, goldRgb.b);
       doc.setFontSize(13);
       doc.text(formData.shlokaOrBismillah || 'Shree Ganeshaya Namah', 70, 25, { align: 'center' });
 
       // Groom
-      doc.setTextColor(isIvory ? 30 : 255, isIvory ? 41 : 255, isIvory ? 59 : 255);
+      doc.setTextColor(textRgb.r, textRgb.g, textRgb.b);
       doc.setFontSize(22);
       doc.text(formData.groomName, 70, 52, { align: 'center' });
 
       doc.setFontSize(10);
-      doc.setTextColor(isIvory ? 120 : 254, isIvory ? 53 : 215, isIvory ? 15 : 170);
+      doc.setTextColor(goldRgb.r, goldRgb.g, goldRgb.b);
       doc.text(formData.groomParents, 70, 60, { align: 'center' });
 
       // Weds
@@ -483,38 +411,38 @@ export default function WeddingCardWizard() {
       doc.text('Weds (संग)', 70, 72, { align: 'center' });
 
       // Bride
-      doc.setTextColor(isIvory ? 30 : 255, isIvory ? 41 : 255, isIvory ? 59 : 255);
+      doc.setTextColor(textRgb.r, textRgb.g, textRgb.b);
       doc.setFontSize(22);
       doc.text(formData.brideName, 70, 86, { align: 'center' });
 
       doc.setFontSize(10);
-      doc.setTextColor(isIvory ? 120 : 254, isIvory ? 53 : 215, isIvory ? 15 : 170);
+      doc.setTextColor(goldRgb.r, goldRgb.g, goldRgb.b);
       doc.text(formData.brideParents, 70, 94, { align: 'center' });
 
       // Date Time
-      doc.setTextColor(isIvory ? 180 : 253, isIvory ? 83 : 224, isIvory ? 9 : 71);
+      doc.setTextColor(goldRgb.r, goldRgb.g, goldRgb.b);
       doc.setFontSize(11);
       doc.text(`${formData.weddingDate} • ${formData.weddingTime}`, 70, 115, { align: 'center' });
 
       // Venue
-      doc.setTextColor(isIvory ? 30 : 255, isIvory ? 41 : 255, isIvory ? 59 : 255);
+      doc.setTextColor(textRgb.r, textRgb.g, textRgb.b);
       doc.setFontSize(12);
       doc.text(formData.venueName, 70, 130, { align: 'center' });
       doc.setFontSize(9);
-      doc.setTextColor(isIvory ? 100 : 254, isIvory ? 100 : 240, isIvory ? 100 : 138);
+      doc.setTextColor(goldRgb.r, goldRgb.g, goldRgb.b);
       doc.text(formData.venueAddress, 70, 138, { align: 'center' });
 
       // QR Code
       if (qrCodeDataUrl) {
         doc.addImage(qrCodeDataUrl, 'PNG', 55, 148, 30, 30);
         doc.setFontSize(8);
-        doc.setTextColor(isIvory ? 50 : 255, isIvory ? 50 : 255, isIvory ? 50 : 255);
+        doc.setTextColor(textRgb.r, textRgb.g, textRgb.b);
         doc.text('Scan for Google Maps Venue', 70, 182, { align: 'center' });
       }
 
       // RSVP
       doc.setFontSize(9);
-      doc.setTextColor(isIvory ? 120 : 254, isIvory ? 53 : 215, isIvory ? 15 : 170);
+      doc.setTextColor(goldRgb.r, goldRgb.g, goldRgb.b);
       doc.text(`RSVP: ${formData.rsvpNames} | Ph: ${formData.rsvpPhone}`, 70, 194, { align: 'center' });
 
       doc.save(`${formData.groomName}_${formData.brideName}_Invitation.pdf`);
@@ -531,17 +459,17 @@ export default function WeddingCardWizard() {
       <div className="text-center max-w-3xl mx-auto mb-6 sm:mb-8">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-bold mb-2 border border-rose-200">
           <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
-          Indian Wedding Card Studio
+          Indian Wedding Card Studio (100+ Authentic Themes)
         </span>
         <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Create Royal Indian Wedding Cards
+          Design Pure Indian Wedding Cards
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-2">
-          Choose card themes, customize Indian typography & fonts, auto-fill details, and generate instant print-ready cards with Google Maps QR codes.
+          108+ Culturally Rich Indian Wedding Card Themes, Hindi Transliteration Typing (Hinglish &rarr; हिन्दी), Auspicious Shlokas Bank & Instant 300 DPI PDF Exports.
         </p>
       </div>
 
-      {/* MOBILE RESPONSIVE TAB SWITCHER (Visible on Mobile & Tablets < 1024px) */}
+      {/* MOBILE RESPONSIVE TAB SWITCHER */}
       <div className="flex lg:hidden justify-center mb-6 sticky top-16 z-30 bg-slate-50/95 backdrop-blur-md py-2 border-b border-slate-200">
         <div className="bg-slate-200 p-1 rounded-xl flex items-center gap-1 shadow-inner w-full max-w-sm">
           <button
@@ -553,73 +481,125 @@ export default function WeddingCardWizard() {
             }`}
           >
             <Edit3 className="w-3.5 h-3.5 text-amber-600" />
-            <span>Edit Details & Font</span>
+            <span>1. Edit Details & Theme</span>
           </button>
           <button
             onClick={() => setMobileTab('preview')}
             className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
               mobileTab === 'preview'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-amber-600 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Eye className="w-3.5 h-3.5 text-rose-600" />
-            <span>View Live Card</span>
+            <Eye className="w-3.5 h-3.5" />
+            <span>2. View Live Card</span>
           </button>
         </div>
       </div>
 
-      {/* MAIN TWO-COLUMN RESPONSIVE LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* LEFT COLUMN: CONTROLS & FORM (7 cols on desktop, hidden on mobile if preview tab active) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+        {/* LEFT COLUMN: CONTROLS & FORM */}
         <div
           className={`lg:col-span-7 space-y-6 ${
             mobileTab === 'preview' ? 'hidden lg:block' : 'block'
           }`}
         >
-          {/* 1. CARD DESIGN / THEME SELECTOR */}
+          {/* 1. MASSIVE 100+ THEME SELECTOR & CULTURAL FILTERS */}
           <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <Palette className="w-4 h-4 text-amber-600" />
                 <h3 className="font-bold text-sm sm:text-base text-slate-900">
-                  1. Choose Card Design & Theme
+                  1. Choose from 100+ Indian Wedding Themes
                 </h3>
               </div>
-              <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                {CARD_THEMES.length} Royal Themes
+              <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                {filteredThemes.length} Themes Available
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {CARD_THEMES.map((theme) => {
+            {/* Cultural Tabs Filter */}
+            <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-none text-xs font-semibold">
+              {[
+                { id: 'All', label: 'All (108)' },
+                { id: 'Hindu', label: '👑 Hindu Royal (15)' },
+                { id: 'Rajasthani', label: '🏰 Rajasthani (12)' },
+                { id: 'South', label: '🌴 South Indian (15)' },
+                { id: 'Punjabi', label: '🌾 Punjabi & Sikh (12)' },
+                { id: 'Bengali', label: '🪷 Bengali (12)' },
+                { id: 'Muslim', label: '🕌 Muslim Nikaah (12)' },
+                { id: 'Gujarati', label: '🦚 Gujarati Kankotri (12)' },
+                { id: 'Modern', label: '✨ Modern Pastel (14)' },
+                { id: 'Pre-Wedding', label: '🎉 Haldi & Mehndi (14)' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setCultureFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors shrink-0 ${
+                    cultureFilter === tab.id
+                      ? 'bg-amber-600 text-white font-bold shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <input
+                type="text"
+                value={themeSearch}
+                onChange={(e) => setThemeSearch(e.target.value)}
+                placeholder="Search by name, region, color (e.g. Haldi, Rajput, Bengali, Emerald, Kanchipuram)..."
+                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none bg-slate-50"
+              />
+            </div>
+
+            {/* Themes Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1">
+              {filteredThemes.map((theme) => {
                 const isSelected = selectedThemeId === theme.id;
                 return (
                   <button
                     key={theme.id}
                     onClick={() => handleSelectTheme(theme)}
-                    className={`p-3 rounded-xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                    className={`text-left p-3 rounded-xl border-2 transition-all relative overflow-hidden group flex flex-col justify-between ${
                       isSelected
-                        ? 'border-amber-600 ring-2 ring-amber-500/30 bg-amber-50/40 shadow-sm'
+                        ? 'border-amber-600 ring-2 ring-amber-500/20 bg-amber-50/50'
                         : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className="w-5 h-5 rounded-full border border-slate-300 shadow-2xs shrink-0"
+                    {/* Color Swatch Header */}
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <div
+                        className="w-4 h-4 rounded-full border border-black/10 shrink-0 shadow-xs"
                         style={{ backgroundColor: theme.bgColorHex }}
                       />
-                      <span className="text-xs font-bold text-slate-900 truncate">
-                        {theme.name}
+                      <div
+                        className="w-4 h-4 rounded-full border border-black/10 shrink-0 shadow-xs"
+                        style={{ backgroundColor: theme.borderColorHex }}
+                      />
+                      <span className="text-[10px] font-bold text-slate-500 truncate ml-auto">
+                        {theme.cultureTag}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-500 font-medium">
-                      {theme.category}
-                    </span>
+
+                    <div>
+                      <p className="font-bold text-xs text-slate-900 leading-tight group-hover:text-amber-700 transition">
+                        {theme.name}
+                      </p>
+                      <p className="text-[10px] text-slate-500 mt-1 line-clamp-1">
+                        {theme.culture}
+                      </p>
+                    </div>
+
                     {isSelected && (
-                      <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-amber-600 rounded-full flex items-center justify-center text-white">
-                        <Check className="w-2.5 h-2.5" />
-                      </div>
+                      <span className="absolute top-2 right-2 w-4 h-4 bg-amber-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold">
+                        ✓
+                      </span>
                     )}
                   </button>
                 );
@@ -627,7 +607,7 @@ export default function WeddingCardWizard() {
             </div>
           </div>
 
-          {/* 2. FONT & TYPOGRAPHY SELECTOR */}
+          {/* 2. TYPOGRAPHY & INDIC FONTS */}
           <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
@@ -637,7 +617,7 @@ export default function WeddingCardWizard() {
                 </h3>
               </div>
               <span className="text-[11px] font-semibold text-slate-500">
-                Indian & English Fonts
+                Indian & Devanagari Fonts
               </span>
             </div>
 
@@ -701,7 +681,7 @@ export default function WeddingCardWizard() {
               </div>
             </div>
 
-            {/* Live font preview pills */}
+            {/* Live font preview */}
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-bold text-slate-500 uppercase">
                 Active Font Preview:
@@ -715,146 +695,169 @@ export default function WeddingCardWizard() {
             </div>
           </div>
 
-          {/* 3. COUPLE & CEREMONY DETAILS FORM */}
+          {/* 3. COUPLE & CEREMONY DETAILS FORM WITH HINDI TRANSLITERATION */}
           <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <h3 className="font-bold text-sm sm:text-base text-slate-900">
                 3. Couple & Ceremony Details
               </h3>
-              {/* Language Switcher */}
-              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg">
+
+              {/* HINDI TYPING MODE TOGGLE */}
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleLanguageToggle('Hindi')}
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                    language === 'Hindi' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
+                  type="button"
+                  onClick={() => setHindiTypingEnabled(!hindiTypingEnabled)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                    hindiTypingEnabled
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
+                  title="Enable real-time phonetic Hindi typing (e.g. rohan -> रोहन)"
                 >
-                  हिन्दी
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>
+                    🇮🇳 हिन्दी टाइपिंग: {hindiTypingEnabled ? 'ON (Hinglish)' : 'OFF'}
+                  </span>
                 </button>
+
                 <button
-                  onClick={() => handleLanguageToggle('English')}
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                    language === 'English' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
+                  type="button"
+                  onClick={() => setShowKeyboard(!showKeyboard)}
+                  className={`p-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1 ${
+                    showKeyboard
+                      ? 'bg-slate-900 text-white border-slate-900'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                   }`}
+                  title="Toggle Virtual On-Screen Devanagari Keyboard"
                 >
-                  English
+                  <Keyboard className="w-4 h-4 text-amber-500" />
                 </button>
               </div>
             </div>
 
-            {/* Auspicious Shloka / Blessing */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Auspicious Header / Mantra (मांगलिक श्लोक)
-              </label>
-              <input
-                type="text"
-                value={formData.shlokaOrBismillah || ''}
-                onChange={(e) => handleChange('shlokaOrBismillah', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
-              />
+            {/* Virtual On-screen Devanagari Keyboard Drawer */}
+            <VirtualHindiKeyboard
+              isOpen={showKeyboard}
+              onClose={() => setShowKeyboard(false)}
+              onInsertChar={(char) => {
+                // append to active field (e.g. shloka or groomName)
+                handleChange('shlokaOrBismillah', (formData.shlokaOrBismillah || '') + char);
+              }}
+            />
+
+            {/* Quick Phrases & Blessings Bank Bar */}
+            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                  <BookOpen className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Quick Hindi Blessings & Shlokas (1-Click Insert)</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPhrases(!showPhrases)}
+                  className="text-[11px] font-bold text-amber-700 flex items-center gap-0.5 hover:underline"
+                >
+                  {showPhrases ? 'Hide Phrases' : 'Show All Phrases'}
+                  {showPhrases ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+              </div>
+
+              {/* Phrase Pills */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {WEDDING_PHRASE_BANK.slice(0, showPhrases ? undefined : 6).map((phrase, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleInsertPhrase(phrase.text)}
+                    className="text-[11px] font-medium bg-white hover:bg-amber-100 text-amber-950 border border-amber-200 px-2.5 py-1 rounded-lg transition shadow-2xs text-left"
+                    title={phrase.text}
+                  >
+                    + {phrase.title}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Auspicious Shloka / Header */}
+            <IndicTextInput
+              label="Auspicious Header / Mantra (मांगलिक श्लोक या बिस्मिल्लाह)"
+              value={formData.shlokaOrBismillah || ''}
+              onChange={(val) => handleChange('shlokaOrBismillah', val)}
+              placeholder="॥ श्री गणेशाय नमः ॥"
+              hindiTypingEnabled={hindiTypingEnabled}
+            />
 
             {/* Couple names */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Groom Name (वर का नाम)
-                </label>
-                <input
-                  type="text"
-                  value={formData.groomName}
-                  onChange={(e) => handleChange('groomName', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Bride Name (वधू का नाम)
-                </label>
-                <input
-                  type="text"
-                  value={formData.brideName}
-                  onChange={(e) => handleChange('brideName', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Groom's Parents (वर पक्ष माता-पिता)
-                </label>
-                <input
-                  type="text"
-                  value={formData.groomParents}
-                  onChange={(e) => handleChange('groomParents', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Bride's Parents (वधू पक्ष माता-पिता)
-                </label>
-                <input
-                  type="text"
-                  value={formData.brideParents}
-                  onChange={(e) => handleChange('brideParents', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                />
-              </div>
+              <IndicTextInput
+                label="Groom Name (वर का नाम)"
+                value={formData.groomName}
+                onChange={(val) => handleChange('groomName', val)}
+                placeholder="रोहन शर्मा"
+                hindiTypingEnabled={hindiTypingEnabled}
+                required
+              />
+              <IndicTextInput
+                label="Bride Name (वधू का नाम)"
+                value={formData.brideName}
+                onChange={(val) => handleChange('brideName', val)}
+                placeholder="अनन्या वर्मा"
+                hindiTypingEnabled={hindiTypingEnabled}
+                required
+              />
+              <IndicTextInput
+                label="Groom's Parents (वर पक्ष माता-पिता)"
+                value={formData.groomParents}
+                onChange={(val) => handleChange('groomParents', val)}
+                placeholder="श्रीमती सुनीता एवं श्री राजेश शर्मा"
+                hindiTypingEnabled={hindiTypingEnabled}
+              />
+              <IndicTextInput
+                label="Bride's Parents (वधू पक्ष माता-पिता)"
+                value={formData.brideParents}
+                onChange={(val) => handleChange('brideParents', val)}
+                placeholder="श्रीमती कविता एवं श्री मनोज वर्मा"
+                hindiTypingEnabled={hindiTypingEnabled}
+              />
             </div>
 
-            {/* Date, Venue & Maps */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Wedding Date (तिथि)
-                </label>
-                <div className="relative">
-                  <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    value={formData.weddingDate}
-                    onChange={(e) => handleChange('weddingDate', e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Wedding Time (शुभ मुहूर्त)
-                </label>
-                <div className="relative">
-                  <Clock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    value={formData.weddingTime}
-                    onChange={(e) => handleChange('weddingTime', e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                </div>
-              </div>
+            {/* Date and Time */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <IndicTextInput
+                label="Wedding Date (शुभ विवाह दिनांक)"
+                value={formData.weddingDate}
+                onChange={(val) => handleChange('weddingDate', val)}
+                placeholder="रविवार, 15 दिसंबर 2026"
+                hindiTypingEnabled={hindiTypingEnabled}
+              />
+              <IndicTextInput
+                label="Wedding Time (शुभ मुहूर्त समय)"
+                value={formData.weddingTime}
+                onChange={(val) => handleChange('weddingTime', val)}
+                placeholder="सायं 07:00 बजे से"
+                hindiTypingEnabled={hindiTypingEnabled}
+              />
+            </div>
 
+            {/* Venue Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Venue Name (स्थल का नाम)
-                </label>
-                <input
-                  type="text"
+                <IndicTextInput
+                  label="Venue Name (विवाह स्थल / मैरिज गार्डन)"
                   value={formData.venueName}
-                  onChange={(e) => handleChange('venueName', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  onChange={(val) => handleChange('venueName', val)}
+                  placeholder="हवेली हेरिटेज पैलेस एवं लॉन्स"
+                  hindiTypingEnabled={hindiTypingEnabled}
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Venue Full Address (पता)
-                </label>
-                <input
-                  type="text"
+                <IndicTextInput
+                  label="Venue Full Address (पता)"
                   value={formData.venueAddress}
-                  onChange={(e) => handleChange('venueAddress', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  onChange={(val) => handleChange('venueAddress', val)}
+                  placeholder="नियर राजापार्क चौराहा, जयपुर, राजस्थान"
+                  hindiTypingEnabled={hindiTypingEnabled}
                 />
               </div>
 
@@ -875,14 +878,12 @@ export default function WeddingCardWizard() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  RSVP Names (विनीत / दर्शनाभिलाषी)
-                </label>
-                <input
-                  type="text"
+                <IndicTextInput
+                  label="RSVP Names (विनीत / दर्शनाभिलाषी)"
                   value={formData.rsvpNames}
-                  onChange={(e) => handleChange('rsvpNames', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  onChange={(val) => handleChange('rsvpNames', val)}
+                  placeholder="समस्त शर्मा एवं वर्मा परिवार"
+                  hindiTypingEnabled={hindiTypingEnabled}
                 />
               </div>
 
@@ -915,7 +916,7 @@ export default function WeddingCardWizard() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: LIVE CARD PREVIEW (5 cols on desktop, full width on mobile) */}
+        {/* RIGHT COLUMN: LIVE CARD PREVIEW WITH MOTIFS & BORDERS */}
         <div
           className={`lg:col-span-5 lg:sticky lg:top-24 space-y-4 ${
             mobileTab === 'form' ? 'hidden lg:block' : 'block'
@@ -924,7 +925,7 @@ export default function WeddingCardWizard() {
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
             <span className="flex items-center gap-1.5">
               <Eye className="w-3.5 h-3.5 text-amber-600" />
-              Live Interactive Preview
+              Live Interactive Preview ({currentTheme.cultureTag})
             </span>
             <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-mono text-[10px]">
               5" × 7.5" Ratio
@@ -933,15 +934,28 @@ export default function WeddingCardWizard() {
 
           {/* THE WEDDING CARD CANVAS CONTAINER */}
           <div
-            className={`w-full aspect-[1/1.5] rounded-3xl shadow-2xl p-5 sm:p-7 flex flex-col justify-between text-center relative overflow-hidden transition-all duration-300 border-4 ${currentTheme.borderStyle}`}
+            className={`w-full aspect-[1/1.5] rounded-3xl shadow-2xl p-5 sm:p-7 flex flex-col justify-between text-center relative overflow-hidden transition-all duration-300 border-4 ${
+              currentTheme.borderStyle === 'jharokha-arch'
+                ? 'rounded-t-[80px]'
+                : currentTheme.borderStyle === 'mughal-arch'
+                ? 'rounded-t-[100px]'
+                : ''
+            }`}
             style={{
               backgroundColor: currentTheme.bgColorHex,
               color: currentTheme.textColorHex,
+              borderColor: currentTheme.borderColorHex,
             }}
           >
             {/* Outer Decorative Gold Borders */}
             <div
-              className="absolute inset-2 sm:inset-3 border rounded-2xl pointer-events-none opacity-80"
+              className={`absolute inset-2 sm:inset-3 border rounded-2xl pointer-events-none opacity-80 ${
+                currentTheme.borderStyle === 'jharokha-arch'
+                  ? 'rounded-t-[72px]'
+                  : currentTheme.borderStyle === 'mughal-arch'
+                  ? 'rounded-t-[92px]'
+                  : ''
+              }`}
               style={{ borderColor: currentTheme.borderColorHex }}
             />
             <div
@@ -949,10 +963,19 @@ export default function WeddingCardWizard() {
               style={{ borderColor: currentTheme.goldColorHex }}
             />
 
-            {/* Top Ornamental Mantra */}
-            <div className="relative z-10 pt-1 sm:pt-2">
+            {/* Auspicious Motif (Ganesh, Kalash, Bismillah, Khanda, Peacock, Lotus, etc.) */}
+            <div className="relative z-10 pt-1 sm:pt-2 flex flex-col items-center">
+              <div className="mb-1">
+                <WeddingCardMotif
+                  type={currentTheme.motif}
+                  color={currentTheme.goldColorHex}
+                  className="w-10 h-10 sm:w-12 sm:h-12"
+                />
+              </div>
+
+              {/* Mantra / Header */}
               <p
-                className="text-xs sm:text-base font-bold tracking-wide leading-snug drop-shadow-xs"
+                className="text-xs sm:text-sm font-bold tracking-wide leading-snug drop-shadow-xs max-w-xs"
                 style={{
                   fontFamily: headerFont,
                   color: currentTheme.goldColorHex,
@@ -961,13 +984,13 @@ export default function WeddingCardWizard() {
                 {formData.shlokaOrBismillah}
               </p>
               <div
-                className="w-20 sm:w-28 h-0.5 mx-auto my-2 opacity-80"
+                className="w-20 sm:w-28 h-0.5 mx-auto my-1.5 opacity-80"
                 style={{ backgroundColor: currentTheme.borderColorHex }}
               />
             </div>
 
             {/* Couple Names Section with Selected Custom Font */}
-            <div className="relative z-10 my-auto space-y-2 sm:space-y-3">
+            <div className="relative z-10 my-auto space-y-1.5 sm:space-y-2.5">
               <div>
                 <h2
                   className={`font-bold tracking-wide drop-shadow-sm leading-tight ${
@@ -1025,7 +1048,7 @@ export default function WeddingCardWizard() {
             </div>
 
             {/* Ceremony Date, Venue & QR Navigation */}
-            <div className="relative z-10 pt-2 space-y-2">
+            <div className="relative z-10 pt-1 space-y-1.5">
               <div
                 className="text-xs sm:text-sm font-bold tracking-wide"
                 style={{ color: currentTheme.goldColorHex }}
@@ -1058,7 +1081,7 @@ export default function WeddingCardWizard() {
               {qrCodeDataUrl && (
                 <div className="flex items-center justify-center gap-2 pt-0.5">
                   <div className="p-1 bg-white rounded-lg shadow-sm shrink-0">
-                    <img src={qrCodeDataUrl} alt="Venue QR" className="w-10 sm:w-12 h-10 sm:h-12" />
+                    <img src={qrCodeDataUrl} alt="Venue QR" className="w-10 sm:w-11 h-10 sm:h-11" />
                   </div>
                   <span
                     className="text-[9px] sm:text-[10px] text-left leading-tight"
@@ -1078,46 +1101,40 @@ export default function WeddingCardWizard() {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-2.5 pt-1">
+          {/* Action CTAs */}
+          <div className="space-y-2 pt-2">
             <button
               onClick={handleOpenInEditor}
-              className="w-full py-3 px-4 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-98"
+              className="w-full py-3 px-4 bg-linear-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
             >
               <Edit3 className="w-4 h-4" />
-              <span>Customize in Canva Drag-and-Drop Studio</span>
+              <span>Customize in Canva Drag-and-Drop Studio &rarr;</span>
             </button>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={handleDownloadPDF}
                 disabled={isExporting}
-                className="py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors"
+                className="py-2.5 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-3.5 h-3.5 text-slate-600" />
                 <span>{isExporting ? 'Generating...' : 'Download PDF'}</span>
               </button>
 
-              <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                  `🌸 Wedding Invitation 🌸\n\n${formData.groomName} Weds ${formData.brideName}\nDate: ${formData.weddingDate}\nVenue: ${formData.venueName}, ${formData.venueAddress}\n\nWe cordially invite you and your family!`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors"
+              <button
+                onClick={() => {
+                  const text = `Wedding Invitation of ${formData.groomName} & ${formData.brideName} on ${formData.weddingDate}. Venue: ${formData.venueName}.`;
+                  window.open(
+                    `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,
+                    '_blank'
+                  );
+                }}
+                className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
               >
                 <Share2 className="w-3.5 h-3.5" />
-                <span>WhatsApp</span>
-              </a>
+                <span>Share WhatsApp</span>
+              </button>
             </div>
-
-            {/* Mobile: Return to Edit form button */}
-            <button
-              onClick={() => setMobileTab('form')}
-              className="lg:hidden w-full py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg text-center"
-            >
-              &larr; Back to Edit Form & Details
-            </button>
           </div>
         </div>
       </div>
